@@ -1,4 +1,4 @@
-package network
+package main
 
 const (
 	// STUnknown Unknown
@@ -9,4 +9,9 @@ const (
 	STRunning
 	// STStop Stop
 	STStop
+)
+
+const  (
+	// MaxDBNum 最大DB数
+	MaxDBNum = 16
 )

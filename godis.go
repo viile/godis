@@ -1,4 +1,4 @@
-package server
+package main
 // GodisServer .
 type GodisServer struct {
 	Dbs map[int]*DB

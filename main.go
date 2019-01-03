@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	. "github.com/viile/godis/network"
 )
 
 func main() {
@@ -17,12 +16,14 @@ func main() {
 	ss.RegConnectHandler(HandleConnect)
 	ss.RegDisconnectHandler(HandleDisconnect)
 
+	gs := NewGodisServer()
+	_ = gs
 	ss.Serv()
 }
 
 func HandleMessage(s *Session, msg *Message) {
 	//fmt.Println("receive msgID:", msg)
-	fmt.Println(string(msg.GetData()))
+	fmt.Println(msg.GetData())
 	s.GetConn().SendMessage(nil)
 }
 

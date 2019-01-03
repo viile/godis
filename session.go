@@ -1,4 +1,4 @@
-package network
+package main
 
 import (
 	uuid "github.com/google/uuid"
