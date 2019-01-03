@@ -40,7 +40,7 @@ func (c *Conn) Close() {
 }
 
 // SendMessage send message
-func (c *Conn) SendMessage(msg *Message) error {
+func (c *Conn) SendMessage(buf []byte) error {
 	pkg := []byte{43, 79, 75, 13, 10}
 	c.sendCh <- pkg
 	return nil
@@ -66,15 +66,14 @@ func (c *Conn) writeCoroutine(ctx context.Context) {
 
 // readCoroutine read coroutine
 func (c *Conn) readCoroutine(ctx context.Context) {
-
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
 			// 读取数据
-			buf := make([]byte,MaxReadSize)
-			n,err := c.rawConn.Read(buf)
+			buf := make([]byte, MaxReadSize)
+			n, err := c.rawConn.Read(buf)
 			if err != nil {
 				c.done <- err
 				continue

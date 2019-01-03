@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"sync"
 
@@ -10,10 +11,6 @@ import (
 
 // Server struct
 type Server struct {
-	// handle
-	onMessage    func(*Session, *[]byte)
-	onConnect    func(*Session)
-	onDisconnect func(*Session, error)
 	// network
 	sessions     *sync.Map
 	status       int
@@ -46,19 +43,20 @@ func NewServer(addr string) (*Server, error) {
 	return s, nil
 }
 
-// RegMessageHandler register message handler
-func (s *Server) RegMessageHandler(handler func(*Session, *[]byte)) {
-	s.onMessage = handler
+// OnMessage HandleMessage .
+func (s *Server)OnMessage(ss *Session, buf *[]byte) {
+	//fmt.Println("receive msgID:", msg)
+	fmt.Println(buf)
+	ss.GetConn().SendMessage(nil)
 }
-
-// RegConnectHandler register connect handler
-func (s *Server) RegConnectHandler(handler func(*Session)) {
-	s.onConnect = handler
+// OnDisconnect HandleDisconnect .
+func (s *Server) OnDisconnect(ss *Session, err error) {
+	fmt.Println(ss.GetConn().GetName() + " lost.")
 }
-
-// RegDisconnectHandler register disconnect handler
-func (s *Server) RegDisconnectHandler(handler func(*Session, error)) {
-	s.onDisconnect = handler
+// OnConnect HandleConnect .
+func (s *Server) OnConnect(ss *Session) {
+	fmt.Println(ss.GetConn().GetName() + " connected.")
+	ss.GetConn().SendMessage(nil)
 }
 
 // Run Start socket service
@@ -97,6 +95,12 @@ func (s *Server) acceptHandler(ctx context.Context) {
 func (s *Server) connectHandler(ctx context.Context, c net.Conn) {
 	conn := NewConn(c)
 	session := NewSession(conn)
+	db,err := s.Select(session.settings["db"].(int))
+	if err != nil {
+		conn.Close()
+		return
+	}
+	session.DBObject = db
 	s.sessions.Store(session.GetSessionID(), session)
 
 	connctx, cancel := context.WithCancel(ctx)
@@ -110,22 +114,15 @@ func (s *Server) connectHandler(ctx context.Context, c net.Conn) {
 	go conn.readCoroutine(connctx)
 	go conn.writeCoroutine(connctx)
 
-	if s.onConnect != nil {
-		s.onConnect(session)
-	}
+	s.OnConnect(session)
 
 	for {
 		select {
 		case err := <-conn.done:
-			if s.onDisconnect != nil {
-				s.onDisconnect(session, err)
-			}
+			s.OnDisconnect(session, err)
 			return
-
 		case msg := <-conn.messageCh:
-			if s.onMessage != nil {
-				s.onMessage(session, msg)
-			}
+			s.OnMessage(session, msg)
 		}
 	}
 }
