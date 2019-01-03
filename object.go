@@ -1,7 +1,7 @@
 package main
 
-// Key .
-type Key struct {
+// Object .
+type Object struct {
 	Name string
 	ExpireAt int64
 	Type uint8

@@ -20,17 +20,17 @@ func main() {
 	_ = gs
 	ss.Serv()
 }
-
+// HandleMessage .
 func HandleMessage(s *Session, msg *Message) {
 	//fmt.Println("receive msgID:", msg)
 	fmt.Println(msg.GetData())
 	s.GetConn().SendMessage(nil)
 }
-
+// HandleDisconnect .
 func HandleDisconnect(s *Session, err error) {
 	fmt.Println(s.GetConn().GetName() + " lost.")
 }
-
+// HandleConnect .
 func HandleConnect(s *Session) {
 	fmt.Println(s.GetConn().GetName() + " connected.")
 }

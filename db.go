@@ -2,13 +2,13 @@ package main
 
 // DB .
 type DB struct {
-	Id int
-	Keys map[string]*Key
+	ID int
+	Keys map[string]*Object
 }
 // NewDB .
 func NewDB(id int) *DB  {
 	return &DB{
-		Id:id,
-		Keys: make(map[string]*Key),
+		ID:id,
+		Keys: make(map[string]*Object),
 	}
 }
