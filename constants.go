@@ -11,6 +11,11 @@ const (
 	STStop
 )
 
+const (
+	// MaxReadSize read size
+	MaxReadSize = 1024
+)
+
 const  (
 	// MaxDBNum 最大DB数
 	MaxDBNum = 16

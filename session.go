@@ -6,26 +6,26 @@ import (
 
 // Session struct
 type Session struct {
-	sID      string
+	ID       string
 	conn     *Conn
 	settings map[string]interface{}
 }
 
 // NewSession create a new session
 func NewSession(conn *Conn) *Session {
-	id := uuid.New()
 	session := &Session{
-		sID:      id.String(),
+		ID:       uuid.New().String(),
 		conn:     conn,
 		settings: make(map[string]interface{}),
 	}
 	session.settings["db"] = 0
+	session.settings["auth"] = true
 	return session
 }
 
 // GetSessionID get session ID
 func (s *Session) GetSessionID() string {
-	return s.sID
+	return s.ID
 }
 
 // GetConn get zero.Conn pointer

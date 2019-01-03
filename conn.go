@@ -1,19 +1,18 @@
 package main
 
 import (
+	"bytes"
 	"context"
-	"io"
 	"net"
 )
 
 // Conn wrap net.Conn
 type Conn struct {
-	sid       string
 	rawConn   net.Conn
 	sendCh    chan []byte
 	done      chan error
 	name      string
-	messageCh chan *Message
+	messageCh chan *[]byte
 }
 
 // GetName Get conn name
@@ -27,7 +26,7 @@ func NewConn(c net.Conn) *Conn {
 		rawConn:   c,
 		sendCh:    make(chan []byte, 100),
 		done:      make(chan error),
-		messageCh: make(chan *Message, 100),
+		messageCh: make(chan *[]byte, 100),
 	}
 
 	conn.name = c.RemoteAddr().String()
@@ -42,10 +41,7 @@ func (c *Conn) Close() {
 
 // SendMessage send message
 func (c *Conn) SendMessage(msg *Message) error {
-	pkg, err := Encode(msg)
-	if err != nil {
-		return err
-	}
+	pkg := []byte{43, 79, 75, 13, 10}
 	c.sendCh <- pkg
 	return nil
 }
@@ -56,9 +52,7 @@ func (c *Conn) writeCoroutine(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-
 		case pkt := <-c.sendCh:
-
 			if pkt == nil {
 				continue
 			}
@@ -77,28 +71,19 @@ func (c *Conn) readCoroutine(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-
 		default:
-
 			// 读取数据
-			databuf := make([]byte, 8)
-			l, err := io.ReadFull(c.rawConn, databuf)
+			buf := make([]byte,MaxReadSize)
+			n,err := c.rawConn.Read(buf)
 			if err != nil {
 				c.done <- err
 				continue
 			}
-			if l == 0 {
+			if n == 0 {
 				continue
 			}
-
-			// 解码
-			msg, err := Decode(databuf)
-			if err != nil {
-				c.done <- err
-				continue
-			}
-
-			c.messageCh <- msg
+			r := bytes.TrimRight(buf, "\x00")
+			c.messageCh <- &r
 		}
 	}
 }

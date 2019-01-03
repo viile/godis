@@ -18,12 +18,12 @@ func main() {
 
 	gs := NewGodisServer()
 	_ = gs
-	ss.Serv()
+	ss.Run()
 }
 // HandleMessage .
-func HandleMessage(s *Session, msg *Message) {
+func HandleMessage(s *Session, buf *[]byte) {
 	//fmt.Println("receive msgID:", msg)
-	fmt.Println(msg.GetData())
+	fmt.Println(buf)
 	s.GetConn().SendMessage(nil)
 }
 // HandleDisconnect .
@@ -33,4 +33,5 @@ func HandleDisconnect(s *Session, err error) {
 // HandleConnect .
 func HandleConnect(s *Session) {
 	fmt.Println(s.GetConn().GetName() + " connected.")
+	s.GetConn().SendMessage(nil)
 }
