@@ -41,8 +41,7 @@ func (c *Conn) Close() {
 
 // SendMessage send message
 func (c *Conn) SendMessage(buf []byte) error {
-	pkg := []byte{43, 79, 75, 13, 10}
-	c.sendCh <- pkg
+	c.sendCh <- buf
 	return nil
 }
 

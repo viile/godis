@@ -3,10 +3,8 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"sync"
-
 )
 
 // Server struct
@@ -41,22 +39,6 @@ func NewServer(addr string) (*Server, error) {
 	}
 
 	return s, nil
-}
-
-// OnMessage HandleMessage .
-func (s *Server)OnMessage(ss *Session, buf *[]byte) {
-	//fmt.Println("receive msgID:", msg)
-	fmt.Println(buf)
-	ss.GetConn().SendMessage(nil)
-}
-// OnDisconnect HandleDisconnect .
-func (s *Server) OnDisconnect(ss *Session, err error) {
-	fmt.Println(ss.GetConn().GetName() + " lost.")
-}
-// OnConnect HandleConnect .
-func (s *Server) OnConnect(ss *Session) {
-	fmt.Println(ss.GetConn().GetName() + " connected.")
-	ss.GetConn().SendMessage(nil)
 }
 
 // Run Start socket service
@@ -114,15 +96,15 @@ func (s *Server) connectHandler(ctx context.Context, c net.Conn) {
 	go conn.readCoroutine(connctx)
 	go conn.writeCoroutine(connctx)
 
-	s.OnConnect(session)
+	session.OnConnect()
 
 	for {
 		select {
 		case err := <-conn.done:
-			s.OnDisconnect(session, err)
+			session.OnDisconnect(err)
 			return
 		case msg := <-conn.messageCh:
-			s.OnMessage(session, msg)
+			session.OnHandle(msg)
 		}
 	}
 }

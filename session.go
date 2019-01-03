@@ -1,7 +1,8 @@
 package main
 
 import (
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
+	"log"
 )
 
 // Session struct
@@ -30,27 +31,22 @@ func (s *Session) GetSessionID() string {
 	return s.ID
 }
 
-// GetConn get zero.Conn pointer
-func (s *Session) GetConn() *Conn {
-	return s.conn
+// OnDisconnect .
+func (s *Session) OnDisconnect(err error) {
+	log.Println(s.conn.GetName() + " lost.\n",err)
+}
+// OnConnect .
+func (s *Session) OnConnect() {
+	log.Println(s.conn.GetName() + " connected.")
+	pkg := []byte{43, 79, 75, 13, 10}
+	s.conn.SendMessage(pkg)
 }
 
-// SetConn set a zero.Conn to session
-func (s *Session) SetConn(conn *Conn) {
-	s.conn = conn
+// OnHandle .
+func (s *Session) OnHandle(buf *[]byte) {
+	log.Println(buf)
+	pkg := []byte{43, 79, 75, 13, 10}
+	s.conn.SendMessage(pkg)
 }
 
-// GetSetting get setting
-func (s *Session) GetSetting(key string) interface{} {
 
-	if v, ok := s.settings[key]; ok {
-		return v
-	}
-
-	return nil
-}
-
-// SetSetting set setting
-func (s *Session) SetSetting(key string, value interface{}) {
-	s.settings[key] = value
-}
