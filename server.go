@@ -8,52 +8,61 @@ import (
 
 )
 
-// SocketService struct
-type SocketService struct {
+// Server struct
+type Server struct {
+	// handle
 	onMessage    func(*Session, *[]byte)
 	onConnect    func(*Session)
 	onDisconnect func(*Session, error)
+	// network
 	sessions     *sync.Map
 	status       int
 	listener     net.Listener
 	stopCh       chan error
+	// object manager
+	Dbs *sync.Map
 }
 
-// NewSocketService create a new socket service
-func NewSocketService(addr string) (*SocketService, error) {
+// NewServer create a new socket service
+func NewServer(addr string) (*Server, error) {
 	l, err := net.Listen("tcp", addr)
 
 	if err != nil {
 		return nil, err
 	}
 
-	s := &SocketService{
+	s := &Server{
 		sessions: &sync.Map{},
 		stopCh:   make(chan error),
 		status:   STInited,
 		listener: l,
+		Dbs: &sync.Map{},
+	}
+
+	for i := 0; i < MaxDBNum; i++ {
+		s.Dbs.Store(i,NewDB(i))
 	}
 
 	return s, nil
 }
 
 // RegMessageHandler register message handler
-func (s *SocketService) RegMessageHandler(handler func(*Session, *[]byte)) {
+func (s *Server) RegMessageHandler(handler func(*Session, *[]byte)) {
 	s.onMessage = handler
 }
 
 // RegConnectHandler register connect handler
-func (s *SocketService) RegConnectHandler(handler func(*Session)) {
+func (s *Server) RegConnectHandler(handler func(*Session)) {
 	s.onConnect = handler
 }
 
 // RegDisconnectHandler register disconnect handler
-func (s *SocketService) RegDisconnectHandler(handler func(*Session, error)) {
+func (s *Server) RegDisconnectHandler(handler func(*Session, error)) {
 	s.onDisconnect = handler
 }
 
 // Run Start socket service
-func (s *SocketService) Run() {
+func (s *Server) Run() {
 	s.status = STRunning
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -73,7 +82,7 @@ func (s *SocketService) Run() {
 	}
 }
 
-func (s *SocketService) acceptHandler(ctx context.Context) {
+func (s *Server) acceptHandler(ctx context.Context) {
 	for {
 		c, err := s.listener.Accept()
 		if err != nil {
@@ -85,7 +94,7 @@ func (s *SocketService) acceptHandler(ctx context.Context) {
 	}
 }
 
-func (s *SocketService) connectHandler(ctx context.Context, c net.Conn) {
+func (s *Server) connectHandler(ctx context.Context, c net.Conn) {
 	conn := NewConn(c)
 	session := NewSession(conn)
 	s.sessions.Store(session.GetSessionID(), session)
@@ -122,17 +131,17 @@ func (s *SocketService) connectHandler(ctx context.Context, c net.Conn) {
 }
 
 // GetStatus get socket service status
-func (s *SocketService) GetStatus() int {
+func (s *Server) GetStatus() int {
 	return s.status
 }
 
 // Stop stop socket service with reason
-func (s *SocketService) Stop(reason string) {
+func (s *Server) Stop(reason string) {
 	s.stopCh <- errors.New(reason)
 }
 
 // GetConnsCount get connect count
-func (s *SocketService) GetConnsCount() int {
+func (s *Server) GetConnsCount() int {
 	var count int
 	s.sessions.Range(func(k, v interface{}) bool {
 		count++
@@ -141,14 +150,11 @@ func (s *SocketService) GetConnsCount() int {
 	return count
 }
 
-// Unicast Unicast with session ID
-func (s *SocketService) Unicast(sid string, msg *Message) {
-	v, ok := s.sessions.Load(sid)
-	if ok {
-		session := v.(*Session)
-		err := session.GetConn().SendMessage(msg)
-		if err != nil {
-			return
-		}
+func (s *Server) Select(db int) (*DB,error){
+	r,ok := s.Dbs.Load(db)
+	if !ok {
+		return nil,DBNotFound
 	}
+	return r.(*DB),nil
 }
+

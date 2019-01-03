@@ -9,6 +9,8 @@ type Session struct {
 	ID       string
 	conn     *Conn
 	settings map[string]interface{}
+	DBObject *DB
+	CmdStatus int
 }
 
 // NewSession create a new session

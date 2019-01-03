@@ -7,7 +7,7 @@ import (
 func main() {
 	host := "127.0.0.1:18787"
 
-	ss, err := NewSocketService(host)
+	ss, err := NewServer(host)
 	if err != nil {
 		return
 	}
@@ -16,8 +16,6 @@ func main() {
 	ss.RegConnectHandler(HandleConnect)
 	ss.RegDisconnectHandler(HandleDisconnect)
 
-	gs := NewGodisServer()
-	_ = gs
 	ss.Run()
 }
 // HandleMessage .
