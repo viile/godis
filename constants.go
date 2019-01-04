@@ -65,6 +65,7 @@ const (
 	TTL = "TTL"
 	PTTL = "PTTL"
 	EXPIRE = "EXPIRE"
+	TYPE = "TYPE"
 )
 
 const (

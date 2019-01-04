@@ -120,6 +120,26 @@ func (d *DB) Get(key string) (string,error) {
 	return value,nil
 }
 
+func (d *DB) TYPE(key string) (string) {
+	object,err := d.GetObject(key)
+	if err != nil {
+		return "none"
+	}
+	switch object.Type {
+	case RedisString:
+		return "string"
+	case RedisHash:
+		return "hash"
+	case RedisList:
+		return "list"
+	case RedisSet:
+		return "set"
+	case RedisZSet:
+		return "zset"
+	default:
+		return "none"
+	}
+}
 func (d *DB) EXPIRE(argv []string) (int) {
 	key := argv[0]
 	object,err := d.GetObject(key)

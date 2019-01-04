@@ -82,6 +82,13 @@ func (s *Session) Handle(resp *Resp) (ret []byte) {
 			ret = s.Parser.NilBulkReplyEncode()
 		}
 		return
+	case TYPE:
+		if resp.Argc < 2 {
+			ret =s.Parser.ErrReplyEncode(fmt.Sprintf(ErrCommandArgsWrongNumber.Error(),cmd))
+			return
+		}
+		ret = s.Parser.BulkReplyEncode(s.DBObject.TYPE(resp.Argv[1]))
+		return
 	case EXPIRE:
 		if resp.Argc < 3 {
 			ret =s.Parser.ErrReplyEncode(fmt.Sprintf(ErrCommandArgsWrongNumber.Error(),cmd))
