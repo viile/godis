@@ -120,6 +120,24 @@ func (d *DB) Get(key string) (string,error) {
 	return value,nil
 }
 
+func (d *DB) EXPIRE(argv []string) (int) {
+	key := argv[0]
+	object,err := d.GetObject(key)
+	if err != nil {
+		return 0
+	}
+
+	e := argv[1]
+	ex,err := strconv.Atoi(e)
+	if err != nil {
+		return 0
+	}
+
+	object.ExpireAt = int(time.Now().UnixNano() / 1e6) + ex * 1000
+
+	return 1
+}
+
 func (d *DB) TTL(key string) (int) {
 	object,err := d.GetObject(key)
 	if err != nil {

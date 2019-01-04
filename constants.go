@@ -64,6 +64,7 @@ const (
 	GET = "GET"
 	TTL = "TTL"
 	PTTL = "PTTL"
+	EXPIRE = "EXPIRE"
 )
 
 const (
