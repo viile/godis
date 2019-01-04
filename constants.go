@@ -22,6 +22,50 @@ const  (
 )
 
 const (
+	// InitParser .
+	InitParser = iota
+	// ArrayParser .
+	ArrayParser
+	// BulkLengthParser .
+	BulkLengthParser
+	// BulkStringParser .
+	BulkStringParser
+	// IntParser .
+	IntParser
+	// StatusParser .
+	StatusParser
+	// ErrorParser .
+	ErrorParser
+)
+
+// RespReply .
+type RespReply byte
+
+const (
+	// ErrorReply .
+	ErrorReply = RespReply('-')
+	// StatusReply .
+	StatusReply = RespReply('+')
+	// IntReply .
+	IntReply = RespReply(':')
+	// BulkLengthReply .
+	BulkLengthReply = RespReply('$')
+	// ArrayReply .
+	ArrayReply = RespReply('*')
+)
+
+const (
+	DEL = "DEL"
+	SET = "SET"
+	EX = "EX"
+	PX = "PX"
+	NX = "NX"
+	XX = "XX"
+	GET = "GET"
+	TTL = "TTL"
+)
+
+const (
 	// RedisString string
 	RedisString = iota
 	// RedisList list

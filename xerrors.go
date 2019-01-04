@@ -3,5 +3,15 @@ package main
 import "errors"
 
 var (
-	DBNotFound = errors.New("DB not found ")
+	ErrDBNotFound          = errors.New("DB not found ")
+	ErrRedisProtocolParser = errors.New("ErrRedisProtocolParser")
+	ErrRedisLength = errors.New("ErrRedisLength")
+	ErrKeyNotFound = errors.New("key not found")
+	ErrTypeNotMatch = errors.New("type not match")
+)
+
+var (
+	ErrDontSupportThisCommand = errors.New("don't support this command  !!!!!!")
+	ErrCommandArgsWrongNumber = errors.New("ERR wrong number of arguments for '%s' command")
+	ErrCommand                = errors.New("ERR command")
 )

@@ -24,9 +24,9 @@ func (c *Conn) GetName() string {
 func NewConn(c net.Conn) *Conn {
 	conn := &Conn{
 		rawConn:   c,
-		sendCh:    make(chan []byte, 100),
+		sendCh:    make(chan []byte),
 		done:      make(chan error),
-		messageCh: make(chan *[]byte, 100),
+		messageCh: make(chan *[]byte),
 	}
 
 	conn.name = c.RemoteAddr().String()
@@ -41,6 +41,7 @@ func (c *Conn) Close() {
 
 // SendMessage send message
 func (c *Conn) SendMessage(buf []byte) error {
+	//fmt.Println("send:",buf)
 	c.sendCh <- buf
 	return nil
 }

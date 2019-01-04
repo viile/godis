@@ -104,6 +104,7 @@ func (s *Server) connectHandler(ctx context.Context, c net.Conn) {
 			session.OnDisconnect(err)
 			return
 		case msg := <-conn.messageCh:
+			//fmt.Println("rev:",msg)
 			session.OnHandle(msg)
 		}
 	}
@@ -132,7 +133,7 @@ func (s *Server) GetConnsCount() int {
 func (s *Server) Select(db int) (*DB,error){
 	r,ok := s.Dbs.Load(db)
 	if !ok {
-		return nil,DBNotFound
+		return nil, ErrDBNotFound
 	}
 	return r.(*DB),nil
 }
