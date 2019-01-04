@@ -83,6 +83,12 @@ func (s *Session) Handle(resp *Resp) (ret []byte) {
 		}
 		return
 	case TTL:
+		if resp.Argc < 2 {
+			ret =s.Parser.ErrReplyEncode(fmt.Sprintf(ErrCommandArgsWrongNumber.Error(),cmd))
+			return
+		}
+		ret = s.Parser.IntReplyEncode(s.DBObject.TTL(resp.Argv[1]))
+		return
 	case GET:
 		if resp.Argc < 2 {
 			ret = s.Parser.ErrReplyEncode(fmt.Sprintf(ErrCommandArgsWrongNumber.Error(),cmd))

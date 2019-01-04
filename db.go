@@ -1,9 +1,11 @@
 package main
 
 import (
+	"math"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 // DB .
@@ -39,6 +41,7 @@ func (d *DB) Set(argv []string) error {
 	argc := len(argv)
 	if argc > 2 {
 		index := 2
+		ctime := int(time.Now().UnixNano() / 1e6)
 		for index < argc {
 			switch strings.ToUpper(argv[index]) {
 			case NX:
@@ -48,26 +51,26 @@ func (d *DB) Set(argv []string) error {
 				XXFlag = true
 				index++
 			case PX:
-				if index + 1 < argc {
+				if index + 1 >= argc {
 					return ErrCommand
 				}
-				t := argv[index]
+				t := argv[index + 1]
 				r,err:= strconv.Atoi(t)
 				if err != nil{
 					return ErrCommand
 				}
-				EXValue = r
+				EXValue = ctime + r
 				index+= 2
 			case EX:
-				if index + 1 < argc {
+				if index + 1 >= argc {
 					return ErrCommand
 				}
-				t := argv[index]
+				t := argv[index + 1]
 				r,err:= strconv.Atoi(t)
 				if err != nil{
 					return ErrCommand
 				}
-				EXValue = r * 1000
+				EXValue = ctime + r * 1000
 				index+= 2
 			default:
 				return ErrCommand
@@ -98,9 +101,33 @@ func (d *DB) Get(key string) (string,error) {
 		return "",ErrKeyNotFound
 	}
 	object := v.(*Object)
+	if !object.CheckTTL() {
+		d.Objects.Delete(key)
+		return "",ErrKeyNotFound
+	}
 	if object.Type != RedisString {
 		return "",ErrTypeNotMatch
 	}
 	value := object.value.(string)
 	return value,nil
+}
+
+func (d *DB) TTL(key string) (int) {
+	v, ok := d.Objects.Load(key)
+	if !ok {
+		return -2
+	}
+	object := v.(*Object)
+	if !object.CheckTTL() {
+		d.Objects.Delete(key)
+		return -2
+	}
+
+	if object.ExpireAt < 0 {
+		return object.ExpireAt
+	}else {
+		t := object.ExpireAt - int(time.Now().UnixNano() / 1e6)
+		return int(math.Ceil(float64(t) / 1000.0))
+	}
+
 }

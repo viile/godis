@@ -1,5 +1,7 @@
 package main
 
+import "time"
+
 // Object .
 type Object struct {
 	Name string
@@ -13,4 +15,16 @@ func NewObject() *Object {
 	return &Object{
 
 	}
+}
+// CheckTTL .
+func (o *Object) CheckTTL() bool {
+	if o.ExpireAt < 0 {
+		return true
+	}
+	t := int(time.Now().UnixNano() / 1e6)
+	if t < o.ExpireAt {
+		return true
+	}
+
+	return false
 }
