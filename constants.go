@@ -63,6 +63,7 @@ const (
 	XX = "XX"
 	GET = "GET"
 	TTL = "TTL"
+	PTTL = "PTTL"
 )
 
 const (

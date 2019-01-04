@@ -21,6 +21,19 @@ func NewDB(id int) *DB  {
 	}
 }
 
+func(d *DB) GetObject(key string) (*Object,error){
+	v,ok := d.Objects.Load(key)
+	if !ok {
+		return nil,ErrKeyNotFound
+	}
+	object := v.(*Object)
+	if !object.CheckTTL() {
+		d.Objects.Delete(key)
+		return nil,ErrKeyNotFound
+	}
+	return object,nil
+}
+
 func (d *DB) Del(keys []string) int {
 	ret := 0
 	for _,v := range keys {
@@ -96,14 +109,9 @@ func (d *DB) Set(argv []string) error {
 }
 
 func (d *DB) Get(key string) (string,error) {
-	v,ok := d.Objects.Load(key)
-	if !ok {
-		return "",ErrKeyNotFound
-	}
-	object := v.(*Object)
-	if !object.CheckTTL() {
-		d.Objects.Delete(key)
-		return "",ErrKeyNotFound
+	object,err := d.GetObject(key)
+	if err != nil {
+		return "",err
 	}
 	if object.Type != RedisString {
 		return "",ErrTypeNotMatch
@@ -113,13 +121,8 @@ func (d *DB) Get(key string) (string,error) {
 }
 
 func (d *DB) TTL(key string) (int) {
-	v, ok := d.Objects.Load(key)
-	if !ok {
-		return -2
-	}
-	object := v.(*Object)
-	if !object.CheckTTL() {
-		d.Objects.Delete(key)
+	object,err := d.GetObject(key)
+	if err != nil {
 		return -2
 	}
 
@@ -128,6 +131,20 @@ func (d *DB) TTL(key string) (int) {
 	}else {
 		t := object.ExpireAt - int(time.Now().UnixNano() / 1e6)
 		return int(math.Ceil(float64(t) / 1000.0))
+	}
+
+}
+func (d *DB) PTTL(key string) (int) {
+	object,err := d.GetObject(key)
+	if err != nil {
+		return -2
+	}
+
+	if object.ExpireAt < 0 {
+		return object.ExpireAt
+	}else {
+		t := object.ExpireAt - int(time.Now().UnixNano() / 1e6)
+		return int(t)
 	}
 
 }
