@@ -30,3 +30,4 @@ func (s *RedisString) Decr() (int,error) {
 	s.length = len(s.value)
 	return value,nil
 }
+

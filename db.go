@@ -61,13 +61,13 @@ func Set(d *DB,resp *Resp) []byte {
 		ctime := int(time.Now().UnixNano() / 1e6)
 		for index < resp.Argc {
 			switch strings.ToUpper(resp.Argv[index]) {
-			case NX:
+			case "NX":
 				NXFlag = true
 				index++
-			case XX:
+			case "XX":
 				XXFlag = true
 				index++
-			case PX:
+			case "PX":
 				if index + 1 >= resp.Argc {
 					return ErrReplyEncode(ErrCommand.Error())
 				}
@@ -78,7 +78,7 @@ func Set(d *DB,resp *Resp) []byte {
 				}
 				EXValue = ctime + r
 				index+= 2
-			case EX:
+			case "EX":
 				if index + 1 >= resp.Argc {
 					return ErrReplyEncode(ErrCommand.Error())
 				}
@@ -111,67 +111,6 @@ func Set(d *DB,resp *Resp) []byte {
 
 	return StatusOkReplyEncode()
 }
-func (d *DB) Set(argv []string) error {
-	var NXFlag,XXFlag bool
-	EXValue := -1
-	key,value := argv[0],argv[1]
-	argc := len(argv)
-	if argc > 2 {
-		index := 2
-		ctime := int(time.Now().UnixNano() / 1e6)
-		for index < argc {
-			switch strings.ToUpper(argv[index]) {
-			case NX:
-				NXFlag = true
-				index++
-			case XX:
-				XXFlag = true
-				index++
-			case PX:
-				if index + 1 >= argc {
-					return ErrCommand
-				}
-				t := argv[index + 1]
-				r,err:= strconv.Atoi(t)
-				if err != nil{
-					return ErrCommand
-				}
-				EXValue = ctime + r
-				index+= 2
-			case EX:
-				if index + 1 >= argc {
-					return ErrCommand
-				}
-				t := argv[index + 1]
-				r,err:= strconv.Atoi(t)
-				if err != nil{
-					return ErrCommand
-				}
-				EXValue = ctime + r * 1000
-				index+= 2
-			default:
-				return ErrCommand
-			}
-		}
-	}
-
-	_,ok := d.Objects.Load(key)
-	if (ok && NXFlag) || (!ok && XXFlag) {
-		return ErrCommand
-	}
-
-	o := NewObject()
-	o.Value = NewRedisString(value)
-	o.Type = TypeRedisString
-	o.Encoding = RedisEncodingRaw
-	o.Name = key
-	o.ExpireAt = EXValue
-
-	d.Objects.Store(key,o)
-
-	return nil
-}
-
 func Get(d *DB,resp *Resp) []byte {
 	object,err := d.GetObject(resp.GetKey())
 	if err != nil {

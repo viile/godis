@@ -16,7 +16,7 @@ const (
 	MaxReadSize = 1024
 )
 
-const  (
+const (
 	// MaxDBNum 最大DB数
 	MaxDBNum = 16
 )
@@ -58,23 +58,143 @@ const (
 	KeyNotExists = -2
 )
 
+// Key
 const (
-	DEL = "DEL"
-	SET = "SET"
-	EX = "EX"
-	PX = "PX"
-	NX = "NX"
-	XX = "XX"
-	GET = "GET"
-	TTL = "TTL"
-	PTTL = "PTTL"
-	EXPIRE = "EXPIRE"
-	EXPIREAT = "EXPIREAT"
+	DEL       = "DEL"
+	DUMP      = "DUMP"
+	EXISTS    = "EXISTS"
+	EXPIRE    = "EXPIRE"
+	EXPIREAT  = "EXPIREAT"
+	KEYS      = "KEYS"
+	MIGRATE   = "MIGRATE"
+	MOVE      = "MOVE"
+	OBJECT    = "OBJECT"
+	PERSIST   = "PERSIST"
+	PEXPIRE   = "PEXPIRE"
 	PEXPIREAT = "PEXPIREAT"
-	PEXPIRE = "PEXPIRE"
-	TYPE = "TYPE"
-	EXISTS = "EXISTS"
-	PERSIST = "PERSIST"
+	PTTL      = "PTTL"
+	RANDOMKEY = "RANDOMKEY"
+	RENAME    = "RENAME"
+	RENAMENX  = "RENAMENX"
+	RESTORE   = "RESTORE"
+	SORT      = "SORT"
+	TTL       = "TTL"
+	TYPE      = "TYPE"
+	SCAN      = "SCAN"
+)
+
+// String
+const (
+	APPEND      = "APPEND"
+	BITCOUNT    = "BITCOUNT"
+	BITOP       = "BITOP"
+	DECR        = "DECR"
+	DECRBY      = "DECRBY"
+	GET         = "GET"
+	GETBIT      = "GETBIT"
+	GETRANGE    = "GETRANGE"
+	GETSET      = "GETSET"
+	INCR        = "INCR"
+	INCRBY      = "INCRBY"
+	INCRBYFLOAT = "INCRBYFLOAT"
+	MGET        = "MGET"
+	MSET        = "MSET"
+	MSETNX      = "MSETNX"
+	PSETEX      = "PSETEX"
+	SET         = "SET"
+	SETBIT      = "SETBIT"
+	SETEX       = "SETEX"
+	SETNX       = "SETNX"
+	SETRANGE    = "SETRANGE"
+	STRLEN      = "STRLEN"
+)
+
+// Hash
+const (
+	HDEL         = "HDEL"
+	HEXISTS      = "HEXISTS"
+	HGET         = "HGET"
+	HGETALL      = "HGETALL"
+	HINCRBY      = "HINCRBY"
+	HINCRBYFLOAT = "HINCRBYFLOAT"
+	HKEYS        = "HKEYS"
+	HLEN         = "HLEN"
+	HMGET        = "HMGET"
+	HMSET        = "HMSET"
+	HSET         = "HSET"
+	HSETNX       = "HSETNX"
+	HVALS        = "HVALS"
+	HSCAN        = "HSCAN"
+)
+
+// List
+const (
+	BLPOP      = "BLPOP"
+	BRPOP      = "BRPOP"
+	BRPOPLPUSH = "BRPOPLPUSH"
+	LINDEX     = "LINDEX"
+	LINSERT    = "LINSERT"
+	LLEN       = "LLEN"
+	LPOP       = "LPOP"
+	LPUSH      = "LPUSH"
+	LPUSHX     = "LPUSHX"
+	LRANGE     = "LRANGE"
+	LREM       = "LREM"
+	LSET       = "LSET"
+	LTRIM      = "LTRIM"
+	RPOP       = "RPOP"
+	RPOPLPUSH  = "RPOPLPUSH"
+	RPUSH      = "RPUSH"
+	RPUSHX     = "RPUSHX"
+)
+
+// Set
+const (
+	SADD        = "SADD"
+	SCARD       = "SCARD"
+	SDIFF       = "SDIFF"
+	SDIFFSTORE  = "SDIFFSTORE"
+	SINTER      = "SINTER"
+	SINTERSTORE = "SINTERSTORE"
+	SISMEMBER   = "SISMEMBER"
+	SMEMBERS    = "SMEMBERS"
+	SMOVE       = "SMOVE"
+	SPOP        = "SPOP"
+	SRANDMEMBER = "SRANDMEMBER"
+	SREM        = "SREM"
+	SUNION      = "SUNION"
+	SUNIONSTORE = "SUNIONSTORE"
+	SSCAN       = "SSCAN"
+)
+
+// SortedSet
+const (
+	ZADD             = "ZADD"
+	ZCARD            = "ZCARD"
+	ZCOUNT           = "ZCOUNT"
+	ZINCRBY          = "ZINCRBY"
+	ZRANGE           = "ZRANGE"
+	ZRANGEBYSCORE    = "ZRANGEBYSCORE"
+	ZRANK            = "ZRANK"
+	ZREM             = "ZREM"
+	ZREMRANGEBYRANK  = "ZREMRANGEBYRANK"
+	ZREMRANGEBYSCORE = "ZREMRANGEBYSCORE"
+	ZREVRANGE        = "ZREVRANGE"
+	ZREVRANGEBYSCORE = "ZREVRANGEBYSCORE"
+	ZREVRANK         = "ZREVRANK"
+	ZSCORE           = "ZSCORE"
+	ZUNIONSTORE      = "ZUNIONSTORE"
+	ZINTERSTORE      = "ZINTERSTORE"
+	ZSCAN            = "ZSCAN"
+)
+
+// Connection
+const (
+	AUTH   = "AUTH"
+	ECHO   = "ECHO"
+	PING   = "PING"
+	QUIT   = "QUIT"
+	SELECT = "SELECT"
 )
 
 const (
