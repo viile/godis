@@ -244,3 +244,12 @@ func PTtl(d *DB,resp *Resp) []byte {
 		return IntReplyEncode(t)
 	}
 }
+func Ping(d *DB,resp *Resp) []byte {
+	if resp.Argc == 2 {
+		return BulkReplyEncode(resp.Argv[1])
+	}
+	return BulkReplyEncode("PONG")
+}
+func Echo(d *DB,resp *Resp) []byte {
+	return BulkReplyEncode(resp.Argv[1])
+}

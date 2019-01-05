@@ -6,90 +6,103 @@ import (
 )
 
 var HM *HandleManger
+
 type Handle struct {
-	Command string
-	LeastArgNumbers int
-	Func func(*DB,*Resp) []byte
+	Command       string
+	MinArgNumbers int
+	MaxArgNumbers int
+	Func          func(*DB, *Resp) []byte
 }
 
 type HandleManger struct {
 	Handles map[string]*Handle
 }
 
-func init(){
+func init() {
 	HM = NewHandleManger()
 	HM.Handles[GET] = &Handle{
-		Command:GET,
-		LeastArgNumbers:2,
-		Func:Get,
+		Command:       GET,
+		MinArgNumbers: 2,
+		Func:          Get,
 	}
 	HM.Handles[SET] = &Handle{
-		Command:SET,
-		LeastArgNumbers:3,
-		Func:Set,
+		Command:       SET,
+		MinArgNumbers: 3,
+		Func:          Set,
 	}
 	HM.Handles[DEL] = &Handle{
-		Command:DEL,
-		LeastArgNumbers:2,
-		Func:Del,
+		Command:       DEL,
+		MinArgNumbers: 2,
+		Func:          Del,
 	}
 	HM.Handles[TTL] = &Handle{
-		Command:TTL,
-		LeastArgNumbers:2,
-		Func:Ttl,
+		Command:       TTL,
+		MinArgNumbers: 2,
+		Func:          Ttl,
 	}
 	HM.Handles[PTTL] = &Handle{
-		Command:PTTL,
-		LeastArgNumbers:2,
-		Func:PTtl,
+		Command:       PTTL,
+		MinArgNumbers: 2,
+		Func:          PTtl,
 	}
 	HM.Handles[EXISTS] = &Handle{
-		Command:EXISTS,
-		LeastArgNumbers:2,
-		Func:Exists,
+		Command:       EXISTS,
+		MinArgNumbers: 2,
+		Func:          Exists,
 	}
 	HM.Handles[EXPIRE] = &Handle{
-		Command:EXPIRE,
-		LeastArgNumbers:3,
-		Func:Expire,
+		Command:       EXPIRE,
+		MinArgNumbers: 3,
+		Func:          Expire,
 	}
 	HM.Handles[PEXPIRE] = &Handle{
-		Command:PEXPIRE,
-		LeastArgNumbers:3,
-		Func:PExpire,
+		Command:       PEXPIRE,
+		MinArgNumbers: 3,
+		Func:          PExpire,
 	}
 	HM.Handles[EXPIREAT] = &Handle{
-		Command:EXPIREAT,
-		LeastArgNumbers:3,
-		Func:ExpireAt,
+		Command:       EXPIREAT,
+		MinArgNumbers: 3,
+		Func:          ExpireAt,
 	}
 	HM.Handles[PEXPIREAT] = &Handle{
-		Command:PEXPIREAT,
-		LeastArgNumbers:3,
-		Func:PExpireAt,
+		Command:       PEXPIREAT,
+		MinArgNumbers: 3,
+		Func:          PExpireAt,
 	}
 	HM.Handles[PERSIST] = &Handle{
-		Command:PERSIST,
-		LeastArgNumbers:3,
-		Func:Persist,
+		Command:       PERSIST,
+		MinArgNumbers: 3,
+		Func:          Persist,
+	}
+	HM.Handles[PING] = &Handle{
+		Command:       PING,
+		MinArgNumbers: 1,
+		MaxArgNumbers: 2,
+		Func:          Ping,
+	}
+	HM.Handles[ECHO] = &Handle{
+		Command:       ECHO,
+		MinArgNumbers: 2,
+		MaxArgNumbers: 2,
+		Func:          Echo,
 	}
 }
 
-func NewHandleManger() *HandleManger{
+func NewHandleManger() *HandleManger {
 	return &HandleManger{
-		Handles:make(map[string]*Handle),
+		Handles: make(map[string]*Handle),
 	}
 }
 
-func (m *HandleManger) Distribute(db *DB,resp *Resp) []byte {
+func (m *HandleManger) Distribute(db *DB, resp *Resp) []byte {
 	cmd := strings.ToUpper(resp.Argv[0])
-	handle,ok := m.Handles[cmd]
+	handle, ok := m.Handles[cmd]
 	if !ok {
 		return ErrReplyEncode(ErrDontSupportThisCommand.Error())
 	}
-	if resp.Argc < handle.LeastArgNumbers {
-		return ErrReplyEncode(fmt.Sprintf(ErrCommandArgsWrongNumber.Error(),cmd))
+	if resp.Argc < handle.MinArgNumbers || (handle.MaxArgNumbers > 0 && resp.Argc > handle.MaxArgNumbers) {
+		return ErrReplyEncode(fmt.Sprintf(ErrCommandArgsWrongNumber.Error(), cmd))
 	}
-	return handle.Func(db,resp)
+	return handle.Func(db, resp)
 }
-
