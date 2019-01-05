@@ -253,3 +253,92 @@ func Ping(d *DB,resp *Resp) []byte {
 func Echo(d *DB,resp *Resp) []byte {
 	return BulkReplyEncode(resp.Argv[1])
 }
+
+func HSet(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	var hash *RedisHash
+	if err != nil {
+		hash = NewRedisHash()
+		object = NewObject()
+		object.Type = TypeRedisHash
+		object.Name = resp.GetKey()
+		object.Encoding = RedisEncodingHt
+		object.Value = hash
+		d.Objects.Store(resp.GetKey(),object)
+	}else{
+		if object.Type != TypeRedisHash {
+			return ErrReplyEncode(ErrWrongKeyType.Error())
+		}
+		hash = object.Value.(*RedisHash)
+	}
+
+	ret := hash.Set(resp.Argv[2],resp.Argv[3])
+	return IntReplyEncode(ret)
+}
+
+func HGet(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	if object.Type != TypeRedisHash {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	hash := object.Value.(*RedisHash)
+	ret,err := hash.Get(resp.Argv[2])
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	return BulkReplyEncode(ret)
+}
+
+func HDel(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	if object.Type != TypeRedisHash {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	obj := object.Value.(*RedisHash)
+	ret := obj.Del(resp.Argv[2:])
+	return IntReplyEncode(ret)
+}
+
+func HExists(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	if object.Type != TypeRedisHash {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	obj := object.Value.(*RedisHash)
+	ret := obj.Exists(resp.Argv[2])
+	return IntReplyEncode(ret)
+}
+func HLen(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	if object.Type != TypeRedisHash {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	obj := object.Value.(*RedisHash)
+	ret := obj.Len()
+	return IntReplyEncode(ret)
+}
+
+func HGetAll(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	if object.Type != TypeRedisHash {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	obj := object.Value.(*RedisHash)
+	ret := obj.GetAll()
+	return ArrayReplyEncode(ret)
+}

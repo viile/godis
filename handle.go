@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"strings"
 )
-
+// HM .
 var HM *HandleManger
-
+// Handle .
 type Handle struct {
 	Command       string
 	MinArgNumbers int
 	MaxArgNumbers int
 	Func          func(*DB, *Resp) []byte
 }
-
+// HandleManger .
 type HandleManger struct {
 	Handles map[string]*Handle
 }
@@ -87,14 +87,49 @@ func init() {
 		MaxArgNumbers: 2,
 		Func:          Echo,
 	}
+	HM.Handles[HSET] = &Handle{
+		Command:       HSET,
+		MinArgNumbers: 4,
+		MaxArgNumbers: 4,
+		Func:          HSet,
+	}
+	HM.Handles[HGET] = &Handle{
+		Command:       HGET,
+		MinArgNumbers: 3,
+		MaxArgNumbers: 3,
+		Func:          HGet,
+	}
+	HM.Handles[HGETALL] = &Handle{
+		Command:       HGETALL,
+		MinArgNumbers: 2,
+		MaxArgNumbers: 2,
+		Func:          HGetAll,
+	}
+	HM.Handles[HDEL] = &Handle{
+		Command:       HDEL,
+		MinArgNumbers: 3,
+		Func:          HDel,
+	}
+	HM.Handles[HEXISTS] = &Handle{
+		Command:       HEXISTS,
+		MinArgNumbers: 3,
+		MaxArgNumbers: 3,
+		Func:          HExists,
+	}
+	HM.Handles[HLEN] = &Handle{
+		Command:       HLEN,
+		MinArgNumbers: 2,
+		MaxArgNumbers: 2,
+		Func:          HLen,
+	}
 }
-
+// NewHandleManger .
 func NewHandleManger() *HandleManger {
 	return &HandleManger{
 		Handles: make(map[string]*Handle),
 	}
 }
-
+// Distribute .
 func (m *HandleManger) Distribute(db *DB, resp *Resp) []byte {
 	cmd := strings.ToUpper(resp.Argv[0])
 	handle, ok := m.Handles[cmd]

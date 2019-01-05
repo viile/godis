@@ -15,7 +15,7 @@ type Object struct {
 // NewObject .
 func NewObject() *Object {
 	return &Object{
-
+		ExpireAt:-1,
 	}
 }
 // CheckTTL .

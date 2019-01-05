@@ -15,4 +15,5 @@ var (
 	ErrCommandArgsWrongNumber = errors.New("ERR wrong number of arguments for '%s' command")
 	ErrCommand                = errors.New("ERR command")
 	ErrValueType         = errors.New("ERR value is not an integer or out of range")
+	ErrWrongKeyType         = errors.New("WRONGTYPE Operation against a key holding the wrong kind of value")
 )
