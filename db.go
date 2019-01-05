@@ -33,10 +33,16 @@ func(d *DB) GetObject(key string) (*Object,error){
 	}
 	return object,nil
 }
-
-func (d *DB) Del(keys []string) int {
+func Exists(d *DB,resp *Resp) []byte {
+	_,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+	return IntReplyEncode(1)
+}
+func Del(d *DB,resp *Resp) []byte {
 	ret := 0
-	for _,v := range keys {
+	for _,v := range resp.Argv[1:] {
 		_,ok := d.Objects.Load(v)
 		if !ok {
 			continue
@@ -44,9 +50,67 @@ func (d *DB) Del(keys []string) int {
 		d.Objects.Delete(v)
 		ret++
 	}
-	return ret
+	return IntReplyEncode(ret)
 }
+func Set(d *DB,resp *Resp) []byte {
+	var NXFlag,XXFlag bool
+	EXValue := -1
+	key,value := resp.Argv[1],resp.Argv[2]
+	if resp.Argc > 3 {
+		index := 3
+		ctime := int(time.Now().UnixNano() / 1e6)
+		for index < resp.Argc {
+			switch strings.ToUpper(resp.Argv[index]) {
+			case NX:
+				NXFlag = true
+				index++
+			case XX:
+				XXFlag = true
+				index++
+			case PX:
+				if index + 1 >= resp.Argc {
+					return ErrReplyEncode(ErrCommand.Error())
+				}
+				t := resp.Argv[index + 1]
+				r,err:= strconv.Atoi(t)
+				if err != nil{
+					return ErrReplyEncode(ErrCommand.Error())
+				}
+				EXValue = ctime + r
+				index+= 2
+			case EX:
+				if index + 1 >= resp.Argc {
+					return ErrReplyEncode(ErrCommand.Error())
+				}
+				t := resp.Argv[index + 1]
+				r,err:= strconv.Atoi(t)
+				if err != nil{
+					return ErrReplyEncode(ErrCommand.Error())
+				}
+				EXValue = ctime + r * 1000
+				index+= 2
+			default:
+				return ErrReplyEncode(ErrCommand.Error())
+			}
+		}
+	}
 
+	_,ok := d.Objects.Load(key)
+	if (ok && NXFlag) || (!ok && XXFlag) {
+		return NilBulkReplyEncode()
+	}
+
+	o := NewObject()
+	o.Value = NewRedisString(value)
+	o.Type = TypeRedisString
+	o.Encoding = RedisEncodingRaw
+	o.Name = key
+	o.ExpireAt = EXValue
+
+	d.Objects.Store(key,o)
+
+	return StatusOkReplyEncode()
+}
 func (d *DB) Set(argv []string) error {
 	var NXFlag,XXFlag bool
 	EXValue := -1
@@ -97,8 +161,8 @@ func (d *DB) Set(argv []string) error {
 	}
 
 	o := NewObject()
-	o.value = value
-	o.Type = RedisString
+	o.Value = NewRedisString(value)
+	o.Type = TypeRedisString
 	o.Encoding = RedisEncodingRaw
 	o.Name = key
 	o.ExpireAt = EXValue
@@ -108,81 +172,136 @@ func (d *DB) Set(argv []string) error {
 	return nil
 }
 
-func (d *DB) Get(key string) (string,error) {
-	object,err := d.GetObject(key)
+func Get(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
 	if err != nil {
-		return "",err
+		return ErrReplyEncode(ErrKeyNotFound.Error())
 	}
-	if object.Type != RedisString {
-		return "",ErrTypeNotMatch
+	if object.Type != TypeRedisString {
+		return ErrReplyEncode(ErrTypeNotMatch.Error())
 	}
-	value := object.value.(string)
-	return value,nil
+	v := object.Value.(*RedisString)
+	return BulkReplyEncode(v.value)
 }
-
-func (d *DB) TYPE(key string) (string) {
-	object,err := d.GetObject(key)
+func Type(d *DB,resp *Resp) []byte {
+	ret := ""
+	object,err := d.GetObject(resp.GetKey())
 	if err != nil {
-		return "none"
+		ret = "none"
 	}
 	switch object.Type {
-	case RedisString:
-		return "string"
-	case RedisHash:
-		return "hash"
-	case RedisList:
-		return "list"
-	case RedisSet:
-		return "set"
-	case RedisZSet:
-		return "zset"
+	case TypeRedisString:
+		ret = "string"
+	case TypeRedisHash:
+		ret = "hash"
+	case TypeRedisList:
+		ret = "list"
+	case TypeRedisSet:
+		ret = "set"
+	case TypeRedisZSet:
+		ret = "zset"
 	default:
-		return "none"
-	}
-}
-func (d *DB) EXPIRE(argv []string) (int) {
-	key := argv[0]
-	object,err := d.GetObject(key)
-	if err != nil {
-		return 0
+		ret = "none"
 	}
 
-	e := argv[1]
+	return BulkReplyEncode(ret)
+}
+func ExpireAt(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+
+	e := resp.Argv[2]
 	ex,err := strconv.Atoi(e)
 	if err != nil {
-		return 0
+		return IntReplyEncode(0)
+	}
+
+	object.ExpireAt = ex * 1000
+
+	return IntReplyEncode(1)
+}
+func PExpireAt(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+
+	e := resp.Argv[2]
+	ex,err := strconv.Atoi(e)
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+
+	object.ExpireAt = ex
+
+	return IntReplyEncode(1)
+}
+func Expire(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+	e := resp.Argv[2]
+	ex,err := strconv.Atoi(e)
+	if err != nil {
+		return IntReplyEncode(0)
 	}
 
 	object.ExpireAt = int(time.Now().UnixNano() / 1e6) + ex * 1000
 
-	return 1
+	return IntReplyEncode(1)
+}
+func PExpire(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+
+	ex,err := strconv.Atoi(resp.Argv[2])
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+
+	object.ExpireAt = int(time.Now().UnixNano() / 1e6) + ex
+
+	return IntReplyEncode(1)
 }
 
-func (d *DB) TTL(key string) (int) {
-	object,err := d.GetObject(key)
+func Persist(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
 	if err != nil {
-		return -2
+		return IntReplyEncode(0)
+	}
+
+	object.ExpireAt = -1
+
+	return IntReplyEncode(1)
+}
+func Ttl(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return IntReplyEncode(KeyNotExists)
 	}
 
 	if object.ExpireAt < 0 {
-		return object.ExpireAt
+		return IntReplyEncode(object.ExpireAt)
 	}else {
 		t := object.ExpireAt - int(time.Now().UnixNano() / 1e6)
-		return int(math.Ceil(float64(t) / 1000.0))
+		return IntReplyEncode(int(math.Ceil(float64(t) / 1000.0)))
 	}
-
 }
-func (d *DB) PTTL(key string) (int) {
-	object,err := d.GetObject(key)
+func PTtl(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
 	if err != nil {
-		return -2
+		return IntReplyEncode(KeyNotExists)
 	}
 
 	if object.ExpireAt < 0 {
-		return object.ExpireAt
+		return IntReplyEncode(object.ExpireAt)
 	}else {
 		t := object.ExpireAt - int(time.Now().UnixNano() / 1e6)
-		return int(t)
+		return IntReplyEncode(t)
 	}
-
 }

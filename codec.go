@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"strconv"
 )
 
@@ -18,6 +17,16 @@ type Resp struct {
 	Argv []string
 }
 
+func (r *Resp) GetCommand() string {
+	return r.Argv[0]
+}
+func (r *Resp) GetByIndex(start int,end int) []string {
+	return r.Argv[start:end]
+}
+func (r *Resp) GetKey() string {
+	return r.Argv[1]
+}
+
 func NewCodec() *Codec {
 	return &Codec{
 		Buf:    make([]byte, 0),
@@ -25,65 +34,6 @@ func NewCodec() *Codec {
 	}
 }
 
-func (c *Codec) ErrReplyEncode(str string) []byte {
-	ret := make([]byte,0)
-	ret = append(ret,byte(ErrorReply))
-	ret = append(ret,[]byte(str)...)
-	ret = append(ret,[]byte{13,10}...)
-	return ret
-}
-
-func (c *Codec) IntReplyEncode(i int) []byte {
-	ret := make([]byte,0)
-	ret = append(ret,byte(IntReply))
-	ret = append(ret,[]byte(c.int2bytes(i))...)
-	ret = append(ret,[]byte{13,10}...)
-	return ret
-}
-
-func (c *Codec) StatusReplyEncode(str string) []byte {
-	ret := make([]byte,0)
-	ret = append(ret,byte(StatusReply))
-	ret = append(ret,[]byte(str)...)
-	ret = append(ret,[]byte{13,10}...)
-	return ret
-}
-
-func (c *Codec) BulkReplyEncode(str string) []byte {
-	ret := make([]byte,0)
-	ret = append(ret,byte(BulkLengthReply))
-	ret = append(ret,c.int2bytes(len(str))...)
-	ret = append(ret,[]byte{13,10}...)
-	ret = append(ret,[]byte(str)...)
-	ret = append(ret,[]byte{13,10}...)
-	return ret
-}
-
-func (c *Codec) NilBulkReplyEncode() []byte {
-	return []byte{36,45,49,13,10}
-}
-func (c *Codec) StatusOkReplyEncode() []byte {
-	return []byte{43,79,75,13,10}
-}
-
-func (c *Codec) ArrayReplyEncode(strs []string) []byte {
-	ret := make([]byte,0)
-	ret = append(ret,byte(ArrayReply))
-	ret = append(ret,c.int2bytes(len(strs))...)
-	ret = append(ret,[]byte{13,10}...)
-	for _,v := range strs {
-		ret = append(ret,c.BulkReplyEncode(v)...)
-	}
-	return ret
-}
-
-func (c *Codec) int2bytes(i int) []byte {
-	s := strconv.Itoa(i)
-	log.Println(s)
-	r := []byte(s)
-	log.Println(r)
-	return r
-}
 
 func (c *Codec) init() {
 	c.Buf = make([]byte, 0)
@@ -164,4 +114,63 @@ func (c *Codec) Decode(buf *[]byte) (Resps []*Resp) {
 		}
 	}
 	return
+}
+
+
+func ErrReplyEncode(str string) []byte {
+	ret := make([]byte,0)
+	ret = append(ret,byte(ErrorReply))
+	ret = append(ret,[]byte(str)...)
+	ret = append(ret,[]byte{13,10}...)
+	return ret
+}
+
+func IntReplyEncode(i int) []byte {
+	ret := make([]byte,0)
+	ret = append(ret,byte(IntReply))
+	ret = append(ret,[]byte(Int2bytes(i))...)
+	ret = append(ret,[]byte{13,10}...)
+	return ret
+}
+
+func StatusReplyEncode(str string) []byte {
+	ret := make([]byte,0)
+	ret = append(ret,byte(StatusReply))
+	ret = append(ret,[]byte(str)...)
+	ret = append(ret,[]byte{13,10}...)
+	return ret
+}
+
+func BulkReplyEncode(str string) []byte {
+	ret := make([]byte,0)
+	ret = append(ret,byte(BulkLengthReply))
+	ret = append(ret,Int2bytes(len(str))...)
+	ret = append(ret,[]byte{13,10}...)
+	ret = append(ret,[]byte(str)...)
+	ret = append(ret,[]byte{13,10}...)
+	return ret
+}
+
+func NilBulkReplyEncode() []byte {
+	return []byte{36,45,49,13,10}
+}
+func StatusOkReplyEncode() []byte {
+	return []byte{43,79,75,13,10}
+}
+
+func ArrayReplyEncode(strs []string) []byte {
+	ret := make([]byte,0)
+	ret = append(ret,byte(ArrayReply))
+	ret = append(ret,Int2bytes(len(strs))...)
+	ret = append(ret,[]byte{13,10}...)
+	for _,v := range strs {
+		ret = append(ret,BulkReplyEncode(v)...)
+	}
+	return ret
+}
+
+func Int2bytes(i int) []byte {
+	s := strconv.Itoa(i)
+	r := []byte(s)
+	return r
 }

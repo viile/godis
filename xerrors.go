@@ -14,4 +14,5 @@ var (
 	ErrDontSupportThisCommand = errors.New("don't support this command  !!!!!!")
 	ErrCommandArgsWrongNumber = errors.New("ERR wrong number of arguments for '%s' command")
 	ErrCommand                = errors.New("ERR command")
+	ErrValueType         = errors.New("ERR value is not an integer or out of range")
 )

@@ -55,6 +55,10 @@ const (
 )
 
 const (
+	KeyNotExists = -2
+)
+
+const (
 	DEL = "DEL"
 	SET = "SET"
 	EX = "EX"
@@ -65,20 +69,25 @@ const (
 	TTL = "TTL"
 	PTTL = "PTTL"
 	EXPIRE = "EXPIRE"
+	EXPIREAT = "EXPIREAT"
+	PEXPIREAT = "PEXPIREAT"
+	PEXPIRE = "PEXPIRE"
 	TYPE = "TYPE"
+	EXISTS = "EXISTS"
+	PERSIST = "PERSIST"
 )
 
 const (
-	// RedisString string
-	RedisString = iota
-	// RedisList list
-	RedisList
-	// RedisSet set
-	RedisSet
-	// RedisZSet zset
-	RedisZSet
-	// RedisHash hash
-	RedisHash
+	// TypeRedisString string
+	TypeRedisString = iota
+	// TypeRedisList list
+	TypeRedisList
+	// TypeRedisSet set
+	TypeRedisSet
+	// TypeRedisZSet zset
+	TypeRedisZSet
+	// TypeRedisHash hash
+	TypeRedisHash
 )
 
 const (

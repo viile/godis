@@ -1,14 +1,16 @@
 package main
 
-import "time"
+import (
+	"time"
+)
 
 // Object .
 type Object struct {
-	Name string
+	Name     string
 	ExpireAt int
-	Type uint8
+	Type     uint8
 	Encoding uint8
-	value interface{}
+	Value    interface{}
 }
 // NewObject .
 func NewObject() *Object {
