@@ -122,6 +122,36 @@ func init() {
 		MaxArgNumbers: 2,
 		Func:          HLen,
 	}
+	HM.Handles[HKEYS] = &Handle{
+		Command:       HKEYS,
+		MinArgNumbers: 2,
+		MaxArgNumbers: 2,
+		Func:          HKeys,
+	}
+	HM.Handles[HVALS] = &Handle{
+		Command:       HVALS,
+		MinArgNumbers: 2,
+		MaxArgNumbers: 2,
+		Func:          HVals,
+	}
+	HM.Handles[HINCRBY] = &Handle{
+		Command:       HINCRBY,
+		MinArgNumbers: 4,
+		MaxArgNumbers: 4,
+		Func:          HIncrBy,
+	}
+	HM.Handles[HINCRBYFLOAT] = &Handle{
+		Command:       HINCRBYFLOAT,
+		MinArgNumbers: 4,
+		MaxArgNumbers: 4,
+		Func:          HIncrByFloat,
+	}
+	HM.Handles[HSETNX] = &Handle{
+		Command:       HSETNX,
+		MinArgNumbers: 4,
+		MaxArgNumbers: 4,
+		Func:          HSetNX,
+	}
 }
 // NewHandleManger .
 func NewHandleManger() *HandleManger {

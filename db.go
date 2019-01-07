@@ -275,6 +275,27 @@ func HSet(d *DB,resp *Resp) []byte {
 	ret := hash.Set(resp.Argv[2],resp.Argv[3])
 	return IntReplyEncode(ret)
 }
+func HSetNX(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	var hash *RedisHash
+	if err != nil {
+		hash = NewRedisHash()
+		object = NewObject()
+		object.Type = TypeRedisHash
+		object.Name = resp.GetKey()
+		object.Encoding = RedisEncodingHt
+		object.Value = hash
+		d.Objects.Store(resp.GetKey(),object)
+	}else{
+		if object.Type != TypeRedisHash {
+			return ErrReplyEncode(ErrWrongKeyType.Error())
+		}
+		hash = object.Value.(*RedisHash)
+	}
+
+	ret := hash.SetNX(resp.Argv[2],resp.Argv[3])
+	return IntReplyEncode(ret)
+}
 
 func HGet(d *DB,resp *Resp) []byte {
 	object,err := d.GetObject(resp.GetKey())
@@ -341,4 +362,67 @@ func HGetAll(d *DB,resp *Resp) []byte {
 	obj := object.Value.(*RedisHash)
 	ret := obj.GetAll()
 	return ArrayReplyEncode(ret)
+}
+func HKeys(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	if object.Type != TypeRedisHash {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	obj := object.Value.(*RedisHash)
+	ret := obj.Keys()
+	return ArrayReplyEncode(ret)
+}
+func HVals(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	if object.Type != TypeRedisHash {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	obj := object.Value.(*RedisHash)
+	ret := obj.Vals()
+	return ArrayReplyEncode(ret)
+}
+
+func HIncrBy(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	if object.Type != TypeRedisHash {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	value,err := strconv.Atoi(resp.Argv[3])
+	if err != nil {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	hash := object.Value.(*RedisHash)
+	ret,err := hash.IncrBy(resp.Argv[2],value)
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	return IntReplyEncode(ret)
+}
+func HIncrByFloat(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	if object.Type != TypeRedisHash {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	value,err := strconv.ParseFloat(resp.Argv[3], 64)
+	if err != nil {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	hash := object.Value.(*RedisHash)
+	ret,err := hash.IncrByFloat(resp.Argv[2],value)
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	return BulkReplyEncode(strconv.FormatFloat(ret, 'f', -1, 64))
 }
