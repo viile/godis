@@ -152,6 +152,76 @@ func init() {
 		MaxArgNumbers: 4,
 		Func:          HSetNX,
 	}
+	HM.Handles[SADD] = &Handle{
+		Command:       SADD,
+		MinArgNumbers: 3,
+		Func:          SAdd,
+	}
+	HM.Handles[SCARD] = &Handle{
+		Command:       SCARD,
+		MinArgNumbers: 2,
+		MaxArgNumbers: 2,
+		Func:          SCard,
+	}
+	HM.Handles[SDIFF] = &Handle{
+		Command:       SDIFF,
+		MinArgNumbers: 2,
+		Func:          SDiff,
+	}
+	HM.Handles[SDIFFSTORE] = &Handle{
+		Command:       SDIFFSTORE,
+		MinArgNumbers: 3,
+		Func:          SDiffStore,
+	}
+	HM.Handles[SINTER] = &Handle{
+		Command:       SINTER,
+		MinArgNumbers: 2,
+		Func:          SInter,
+	}
+	HM.Handles[SINTERSTORE] = &Handle{
+		Command:       SINTERSTORE,
+		MinArgNumbers: 3,
+		Func:          SInterStore,
+	}
+	HM.Handles[SISMEMBER] = &Handle{
+		Command:       SISMEMBER,
+		MinArgNumbers: 3,
+		MaxArgNumbers: 3,
+		Func:          SIsMember,
+	}
+	HM.Handles[SMEMBERS] = &Handle{
+		Command:       SMEMBERS,
+		MinArgNumbers: 2,
+		MaxArgNumbers: 2,
+		Func:          SMembers,
+	}
+	HM.Handles[SMOVE] = &Handle{
+		Command:       SMOVE,
+		MinArgNumbers: 4,
+		MaxArgNumbers: 4,
+		Func:          SMove,
+	}
+	HM.Handles[SPOP] = &Handle{
+		Command:       SPOP,
+		MinArgNumbers: 2,
+		MaxArgNumbers: 2,
+		Func:          SPop,
+	}
+	HM.Handles[SREM] = &Handle{
+		Command:       SREM,
+		MinArgNumbers: 3,
+		Func:          SRem,
+	}
+	HM.Handles[SUNION] = &Handle{
+		Command:       SUNION,
+		MinArgNumbers: 2,
+		Func:          SUnion,
+	}
+	HM.Handles[SUNIONSTORE] = &Handle{
+		Command:       SUNIONSTORE,
+		MinArgNumbers: 3,
+		Func:          SUnionStore,
+	}
 }
 // NewHandleManger .
 func NewHandleManger() *HandleManger {

@@ -426,3 +426,251 @@ func HIncrByFloat(d *DB,resp *Resp) []byte {
 	}
 	return BulkReplyEncode(strconv.FormatFloat(ret, 'f', -1, 64))
 }
+
+func SAdd(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	var set *RedisSet
+	if err != nil {
+		set = NewRedisSet()
+		object = NewObject()
+		object.Type = TypeRedisSet
+		object.Name = resp.GetKey()
+		object.Encoding = RedisEncodingHt
+		object.Value = set
+		d.Objects.Store(resp.GetKey(),object)
+	} else {
+		if object.Type != TypeRedisSet {
+			return ErrReplyEncode(ErrWrongKeyType.Error())
+		}
+	}
+
+	ret := set.Add(resp.Argv[2:])
+	return IntReplyEncode(ret)
+}
+
+func SCard(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+	if object.Type != TypeRedisSet {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	set := object.Value.(*RedisSet)
+	return IntReplyEncode(set.Card())
+}
+
+func SDiff(d *DB,resp *Resp) []byte {
+	var ret *RedisSet
+	for _,v := range resp.Argv[1:] {
+		object,err := d.GetObject(v)
+		if err != nil || object.Type != TypeRedisSet{
+			continue
+		}
+		if ret == nil {
+			ret = object.Value.(*RedisSet)
+		} else {
+			ret = ret.Diff(object.Value.(*RedisSet))
+		}
+	}
+	if ret == nil{
+		return NilBulkReplyEncode()
+	} else {
+		return  ArrayReplyEncode(ret.Members())
+	}
+}
+
+func SDiffStore(d *DB,resp *Resp) []byte {
+	var ret *RedisSet
+	for _,v := range resp.Argv[2:] {
+		object,err := d.GetObject(v)
+		if err != nil || object.Type != TypeRedisSet{
+			continue
+		}
+		if ret == nil {
+			ret = object.Value.(*RedisSet)
+		} else {
+			ret = ret.Diff(object.Value.(*RedisSet))
+		}
+	}
+	if ret == nil{
+		ret = NewRedisSet()
+	}
+	object := NewObject()
+	object.Type = TypeRedisSet
+	object.Name = resp.GetKey()
+	object.Encoding = RedisEncodingHt
+	object.Value = ret
+	d.Objects.Store(resp.GetKey(),object)
+	return IntReplyEncode(ret.Card())
+}
+
+func SInter(d *DB,resp *Resp) []byte {
+	var ret *RedisSet
+	for _,v := range resp.Argv[1:] {
+		object,err := d.GetObject(v)
+		if err != nil || object.Type != TypeRedisSet{
+			continue
+		}
+		if ret == nil {
+			ret = object.Value.(*RedisSet)
+		} else {
+			ret = ret.Inter(object.Value.(*RedisSet))
+		}
+	}
+	if ret == nil{
+		return NilBulkReplyEncode()
+	} else {
+		return  ArrayReplyEncode(ret.Members())
+	}
+}
+
+func SInterStore(d *DB,resp *Resp) []byte {
+	var ret *RedisSet
+	for _,v := range resp.Argv[2:] {
+		object,err := d.GetObject(v)
+		if err != nil || object.Type != TypeRedisSet{
+			continue
+		}
+		if ret == nil {
+			ret = object.Value.(*RedisSet)
+		} else {
+			ret = ret.Inter(object.Value.(*RedisSet))
+		}
+	}
+	if ret == nil{
+		ret = NewRedisSet()
+	}
+	object := NewObject()
+	object.Type = TypeRedisSet
+	object.Name = resp.GetKey()
+	object.Encoding = RedisEncodingHt
+	object.Value = ret
+	d.Objects.Store(resp.GetKey(),object)
+	return IntReplyEncode(ret.Card())
+}
+
+func SIsMember(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+
+	if object.Type != TypeRedisSet {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	set := object.Value.(*RedisSet)
+	if !set.IsMember(resp.Argv[2]) {
+		return IntReplyEncode(0)
+	}
+	return IntReplyEncode(1)
+}
+
+func SMembers(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+
+	if object.Type != TypeRedisSet {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	set := object.Value.(*RedisSet)
+	return ArrayReplyEncode(set.Members())
+}
+
+func SMove(d *DB,resp *Resp) []byte {
+	src,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+	if src.Type != TypeRedisSet {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	srcset := src.Value.(*RedisSet)
+	if !srcset.IsMember(resp.Argv[3]) {
+		return IntReplyEncode(0)
+	}
+	dst,err := d.GetObject(resp.Argv[2])
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+	if dst.Type != TypeRedisSet {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	dstset := dst.Value.(*RedisSet)
+	srcset.Move(dstset,resp.Argv[3])
+	return IntReplyEncode(1)
+}
+
+func SPop(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+
+	if object.Type != TypeRedisSet {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	set := object.Value.(*RedisSet)
+	return BulkReplyEncode(set.Pop())
+}
+
+func SRem(d *DB,resp *Resp) []byte {
+	object,err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+
+	if object.Type != TypeRedisSet {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	set := object.Value.(*RedisSet)
+	return IntReplyEncode(set.Rem(resp.Argv[2:]))
+}
+
+func SUnion(d *DB,resp *Resp) []byte {
+	var ret *RedisSet
+	for _,v := range resp.Argv[1:] {
+		object,err := d.GetObject(v)
+		if err != nil || object.Type != TypeRedisSet{
+			continue
+		}
+		if ret == nil {
+			ret = object.Value.(*RedisSet)
+		} else {
+			ret = ret.Union(object.Value.(*RedisSet))
+		}
+	}
+	if ret == nil{
+		return NilBulkReplyEncode()
+	} else {
+		return  ArrayReplyEncode(ret.Members())
+	}
+}
+
+func SUnionStore(d *DB,resp *Resp) []byte {
+	var ret *RedisSet
+	for _,v := range resp.Argv[2:] {
+		object,err := d.GetObject(v)
+		if err != nil || object.Type != TypeRedisSet{
+			continue
+		}
+		if ret == nil {
+			ret = object.Value.(*RedisSet)
+		} else {
+			ret = ret.Union(object.Value.(*RedisSet))
+		}
+	}
+	if ret == nil{
+		ret = NewRedisSet()
+	}
+	object := NewObject()
+	object.Type = TypeRedisSet
+	object.Name = resp.GetKey()
+	object.Encoding = RedisEncodingHt
+	object.Value = ret
+	d.Objects.Store(resp.GetKey(),object)
+	return IntReplyEncode(ret.Card())
+}
+
