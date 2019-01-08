@@ -12,38 +12,41 @@ import (
 type DB struct {
 	ID      int
 	Objects *sync.Map
+	Server  *Server
 }
+
 // NewDB .
-func NewDB(id int) *DB  {
+func NewDB(id int, server *Server) *DB {
 	return &DB{
 		ID:      id,
+		Server:  server,
 		Objects: &sync.Map{},
 	}
 }
 
-func(d *DB) GetObject(key string) (*Object,error){
-	v,ok := d.Objects.Load(key)
+func (d *DB) GetObject(key string) (*Object, error) {
+	v, ok := d.Objects.Load(key)
 	if !ok {
-		return nil,ErrKeyNotFound
+		return nil, ErrKeyNotFound
 	}
 	object := v.(*Object)
 	if !object.CheckTTL() {
 		d.Objects.Delete(key)
-		return nil,ErrKeyNotFound
+		return nil, ErrKeyNotFound
 	}
-	return object,nil
+	return object, nil
 }
-func Exists(d *DB,resp *Resp) []byte {
-	_,err := d.GetObject(resp.GetKey())
+func Exists(d *DB, resp *Resp) []byte {
+	_, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return IntReplyEncode(0)
 	}
 	return IntReplyEncode(1)
 }
-func Del(d *DB,resp *Resp) []byte {
+func Del(d *DB, resp *Resp) []byte {
 	ret := 0
-	for _,v := range resp.Argv[1:] {
-		_,ok := d.Objects.Load(v)
+	for _, v := range resp.Argv[1:] {
+		_, ok := d.Objects.Load(v)
 		if !ok {
 			continue
 		}
@@ -52,10 +55,10 @@ func Del(d *DB,resp *Resp) []byte {
 	}
 	return IntReplyEncode(ret)
 }
-func Set(d *DB,resp *Resp) []byte {
-	var NXFlag,XXFlag bool
+func Set(d *DB, resp *Resp) []byte {
+	var NXFlag, XXFlag bool
 	EXValue := -1
-	key,value := resp.Argv[1],resp.Argv[2]
+	key, value := resp.Argv[1], resp.Argv[2]
 	if resp.Argc > 3 {
 		index := 3
 		ctime := int(time.Now().UnixNano() / 1e6)
@@ -68,34 +71,34 @@ func Set(d *DB,resp *Resp) []byte {
 				XXFlag = true
 				index++
 			case "PX":
-				if index + 1 >= resp.Argc {
+				if index+1 >= resp.Argc {
 					return ErrReplyEncode(ErrCommand.Error())
 				}
-				t := resp.Argv[index + 1]
-				r,err:= strconv.Atoi(t)
-				if err != nil{
+				t := resp.Argv[index+1]
+				r, err := strconv.Atoi(t)
+				if err != nil {
 					return ErrReplyEncode(ErrCommand.Error())
 				}
 				EXValue = ctime + r
-				index+= 2
+				index += 2
 			case "EX":
-				if index + 1 >= resp.Argc {
+				if index+1 >= resp.Argc {
 					return ErrReplyEncode(ErrCommand.Error())
 				}
-				t := resp.Argv[index + 1]
-				r,err:= strconv.Atoi(t)
-				if err != nil{
+				t := resp.Argv[index+1]
+				r, err := strconv.Atoi(t)
+				if err != nil {
 					return ErrReplyEncode(ErrCommand.Error())
 				}
-				EXValue = ctime + r * 1000
-				index+= 2
+				EXValue = ctime + r*1000
+				index += 2
 			default:
 				return ErrReplyEncode(ErrCommand.Error())
 			}
 		}
 	}
 
-	_,ok := d.Objects.Load(key)
+	_, ok := d.Objects.Load(key)
 	if (ok && NXFlag) || (!ok && XXFlag) {
 		return NilBulkReplyEncode()
 	}
@@ -107,12 +110,12 @@ func Set(d *DB,resp *Resp) []byte {
 	o.Name = key
 	o.ExpireAt = EXValue
 
-	d.Objects.Store(key,o)
+	d.Objects.Store(key, o)
 
 	return StatusOkReplyEncode()
 }
-func Get(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func Get(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return ErrReplyEncode(ErrKeyNotFound.Error())
 	}
@@ -122,9 +125,9 @@ func Get(d *DB,resp *Resp) []byte {
 	v := object.Value.(*RedisString)
 	return BulkReplyEncode(v.value)
 }
-func Type(d *DB,resp *Resp) []byte {
+func Type(d *DB, resp *Resp) []byte {
 	ret := ""
-	object,err := d.GetObject(resp.GetKey())
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		ret = "none"
 	}
@@ -145,14 +148,14 @@ func Type(d *DB,resp *Resp) []byte {
 
 	return BulkReplyEncode(ret)
 }
-func ExpireAt(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func ExpireAt(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return IntReplyEncode(0)
 	}
 
 	e := resp.Argv[2]
-	ex,err := strconv.Atoi(e)
+	ex, err := strconv.Atoi(e)
 	if err != nil {
 		return IntReplyEncode(0)
 	}
@@ -161,14 +164,14 @@ func ExpireAt(d *DB,resp *Resp) []byte {
 
 	return IntReplyEncode(1)
 }
-func PExpireAt(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func PExpireAt(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return IntReplyEncode(0)
 	}
 
 	e := resp.Argv[2]
-	ex,err := strconv.Atoi(e)
+	ex, err := strconv.Atoi(e)
 	if err != nil {
 		return IntReplyEncode(0)
 	}
@@ -177,39 +180,39 @@ func PExpireAt(d *DB,resp *Resp) []byte {
 
 	return IntReplyEncode(1)
 }
-func Expire(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func Expire(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return IntReplyEncode(0)
 	}
 	e := resp.Argv[2]
-	ex,err := strconv.Atoi(e)
+	ex, err := strconv.Atoi(e)
 	if err != nil {
 		return IntReplyEncode(0)
 	}
 
-	object.ExpireAt = int(time.Now().UnixNano() / 1e6) + ex * 1000
+	object.ExpireAt = int(time.Now().UnixNano()/1e6) + ex*1000
 
 	return IntReplyEncode(1)
 }
-func PExpire(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func PExpire(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return IntReplyEncode(0)
 	}
 
-	ex,err := strconv.Atoi(resp.Argv[2])
+	ex, err := strconv.Atoi(resp.Argv[2])
 	if err != nil {
 		return IntReplyEncode(0)
 	}
 
-	object.ExpireAt = int(time.Now().UnixNano() / 1e6) + ex
+	object.ExpireAt = int(time.Now().UnixNano()/1e6) + ex
 
 	return IntReplyEncode(1)
 }
 
-func Persist(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func Persist(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return IntReplyEncode(0)
 	}
@@ -218,44 +221,44 @@ func Persist(d *DB,resp *Resp) []byte {
 
 	return IntReplyEncode(1)
 }
-func Ttl(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func Ttl(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return IntReplyEncode(KeyNotExists)
 	}
 
 	if object.ExpireAt < 0 {
 		return IntReplyEncode(object.ExpireAt)
-	}else {
-		t := object.ExpireAt - int(time.Now().UnixNano() / 1e6)
+	} else {
+		t := object.ExpireAt - int(time.Now().UnixNano()/1e6)
 		return IntReplyEncode(int(math.Ceil(float64(t) / 1000.0)))
 	}
 }
-func PTtl(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func PTtl(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return IntReplyEncode(KeyNotExists)
 	}
 
 	if object.ExpireAt < 0 {
 		return IntReplyEncode(object.ExpireAt)
-	}else {
-		t := object.ExpireAt - int(time.Now().UnixNano() / 1e6)
+	} else {
+		t := object.ExpireAt - int(time.Now().UnixNano()/1e6)
 		return IntReplyEncode(t)
 	}
 }
-func Ping(d *DB,resp *Resp) []byte {
+func Ping(d *DB, resp *Resp) []byte {
 	if resp.Argc == 2 {
 		return BulkReplyEncode(resp.Argv[1])
 	}
 	return BulkReplyEncode("PONG")
 }
-func Echo(d *DB,resp *Resp) []byte {
+func Echo(d *DB, resp *Resp) []byte {
 	return BulkReplyEncode(resp.Argv[1])
 }
 
-func HSet(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func HSet(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	var hash *RedisHash
 	if err != nil {
 		hash = NewRedisHash()
@@ -264,19 +267,19 @@ func HSet(d *DB,resp *Resp) []byte {
 		object.Name = resp.GetKey()
 		object.Encoding = RedisEncodingHt
 		object.Value = hash
-		d.Objects.Store(resp.GetKey(),object)
-	}else{
+		d.Objects.Store(resp.GetKey(), object)
+	} else {
 		if object.Type != TypeRedisHash {
 			return ErrReplyEncode(ErrWrongKeyType.Error())
 		}
 		hash = object.Value.(*RedisHash)
 	}
 
-	ret := hash.Set(resp.Argv[2],resp.Argv[3])
+	ret := hash.Set(resp.Argv[2], resp.Argv[3])
 	return IntReplyEncode(ret)
 }
-func HSetNX(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func HSetNX(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	var hash *RedisHash
 	if err != nil {
 		hash = NewRedisHash()
@@ -285,20 +288,20 @@ func HSetNX(d *DB,resp *Resp) []byte {
 		object.Name = resp.GetKey()
 		object.Encoding = RedisEncodingHt
 		object.Value = hash
-		d.Objects.Store(resp.GetKey(),object)
-	}else{
+		d.Objects.Store(resp.GetKey(), object)
+	} else {
 		if object.Type != TypeRedisHash {
 			return ErrReplyEncode(ErrWrongKeyType.Error())
 		}
 		hash = object.Value.(*RedisHash)
 	}
 
-	ret := hash.SetNX(resp.Argv[2],resp.Argv[3])
+	ret := hash.SetNX(resp.Argv[2], resp.Argv[3])
 	return IntReplyEncode(ret)
 }
 
-func HGet(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func HGet(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return NilBulkReplyEncode()
 	}
@@ -306,15 +309,15 @@ func HGet(d *DB,resp *Resp) []byte {
 		return ErrReplyEncode(ErrWrongKeyType.Error())
 	}
 	hash := object.Value.(*RedisHash)
-	ret,err := hash.Get(resp.Argv[2])
+	ret, err := hash.Get(resp.Argv[2])
 	if err != nil {
 		return NilBulkReplyEncode()
 	}
 	return BulkReplyEncode(ret)
 }
 
-func HDel(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func HDel(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return NilBulkReplyEncode()
 	}
@@ -326,8 +329,8 @@ func HDel(d *DB,resp *Resp) []byte {
 	return IntReplyEncode(ret)
 }
 
-func HExists(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func HExists(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return NilBulkReplyEncode()
 	}
@@ -338,8 +341,8 @@ func HExists(d *DB,resp *Resp) []byte {
 	ret := obj.Exists(resp.Argv[2])
 	return IntReplyEncode(ret)
 }
-func HLen(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func HLen(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return NilBulkReplyEncode()
 	}
@@ -351,8 +354,8 @@ func HLen(d *DB,resp *Resp) []byte {
 	return IntReplyEncode(ret)
 }
 
-func HGetAll(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func HGetAll(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return NilBulkReplyEncode()
 	}
@@ -363,8 +366,8 @@ func HGetAll(d *DB,resp *Resp) []byte {
 	ret := obj.GetAll()
 	return ArrayReplyEncode(ret)
 }
-func HKeys(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func HKeys(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return NilBulkReplyEncode()
 	}
@@ -375,8 +378,8 @@ func HKeys(d *DB,resp *Resp) []byte {
 	ret := obj.Keys()
 	return ArrayReplyEncode(ret)
 }
-func HVals(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func HVals(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return NilBulkReplyEncode()
 	}
@@ -388,47 +391,47 @@ func HVals(d *DB,resp *Resp) []byte {
 	return ArrayReplyEncode(ret)
 }
 
-func HIncrBy(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func HIncrBy(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return NilBulkReplyEncode()
 	}
 	if object.Type != TypeRedisHash {
 		return ErrReplyEncode(ErrWrongKeyType.Error())
 	}
-	value,err := strconv.Atoi(resp.Argv[3])
+	value, err := strconv.Atoi(resp.Argv[3])
 	if err != nil {
 		return ErrReplyEncode(ErrWrongKeyType.Error())
 	}
 	hash := object.Value.(*RedisHash)
-	ret,err := hash.IncrBy(resp.Argv[2],value)
+	ret, err := hash.IncrBy(resp.Argv[2], value)
 	if err != nil {
 		return NilBulkReplyEncode()
 	}
 	return IntReplyEncode(ret)
 }
-func HIncrByFloat(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func HIncrByFloat(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return NilBulkReplyEncode()
 	}
 	if object.Type != TypeRedisHash {
 		return ErrReplyEncode(ErrWrongKeyType.Error())
 	}
-	value,err := strconv.ParseFloat(resp.Argv[3], 64)
+	value, err := strconv.ParseFloat(resp.Argv[3], 64)
 	if err != nil {
 		return ErrReplyEncode(ErrWrongKeyType.Error())
 	}
 	hash := object.Value.(*RedisHash)
-	ret,err := hash.IncrByFloat(resp.Argv[2],value)
+	ret, err := hash.IncrByFloat(resp.Argv[2], value)
 	if err != nil {
 		return NilBulkReplyEncode()
 	}
 	return BulkReplyEncode(strconv.FormatFloat(ret, 'f', -1, 64))
 }
 
-func SAdd(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func SAdd(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	var set *RedisSet
 	if err != nil {
 		set = NewRedisSet()
@@ -437,7 +440,7 @@ func SAdd(d *DB,resp *Resp) []byte {
 		object.Name = resp.GetKey()
 		object.Encoding = RedisEncodingHt
 		object.Value = set
-		d.Objects.Store(resp.GetKey(),object)
+		d.Objects.Store(resp.GetKey(), object)
 	} else {
 		if object.Type != TypeRedisSet {
 			return ErrReplyEncode(ErrWrongKeyType.Error())
@@ -448,8 +451,8 @@ func SAdd(d *DB,resp *Resp) []byte {
 	return IntReplyEncode(ret)
 }
 
-func SCard(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func SCard(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return IntReplyEncode(0)
 	}
@@ -460,11 +463,11 @@ func SCard(d *DB,resp *Resp) []byte {
 	return IntReplyEncode(set.Card())
 }
 
-func SDiff(d *DB,resp *Resp) []byte {
+func SDiff(d *DB, resp *Resp) []byte {
 	var ret *RedisSet
-	for _,v := range resp.Argv[1:] {
-		object,err := d.GetObject(v)
-		if err != nil || object.Type != TypeRedisSet{
+	for _, v := range resp.Argv[1:] {
+		object, err := d.GetObject(v)
+		if err != nil || object.Type != TypeRedisSet {
 			continue
 		}
 		if ret == nil {
@@ -473,18 +476,18 @@ func SDiff(d *DB,resp *Resp) []byte {
 			ret = ret.Diff(object.Value.(*RedisSet))
 		}
 	}
-	if ret == nil{
+	if ret == nil {
 		return NilBulkReplyEncode()
 	} else {
-		return  ArrayReplyEncode(ret.Members())
+		return ArrayReplyEncode(ret.Members())
 	}
 }
 
-func SDiffStore(d *DB,resp *Resp) []byte {
+func SDiffStore(d *DB, resp *Resp) []byte {
 	var ret *RedisSet
-	for _,v := range resp.Argv[2:] {
-		object,err := d.GetObject(v)
-		if err != nil || object.Type != TypeRedisSet{
+	for _, v := range resp.Argv[2:] {
+		object, err := d.GetObject(v)
+		if err != nil || object.Type != TypeRedisSet {
 			continue
 		}
 		if ret == nil {
@@ -493,7 +496,7 @@ func SDiffStore(d *DB,resp *Resp) []byte {
 			ret = ret.Diff(object.Value.(*RedisSet))
 		}
 	}
-	if ret == nil{
+	if ret == nil {
 		ret = NewRedisSet()
 	}
 	object := NewObject()
@@ -501,15 +504,15 @@ func SDiffStore(d *DB,resp *Resp) []byte {
 	object.Name = resp.GetKey()
 	object.Encoding = RedisEncodingHt
 	object.Value = ret
-	d.Objects.Store(resp.GetKey(),object)
+	d.Objects.Store(resp.GetKey(), object)
 	return IntReplyEncode(ret.Card())
 }
 
-func SInter(d *DB,resp *Resp) []byte {
+func SInter(d *DB, resp *Resp) []byte {
 	var ret *RedisSet
-	for _,v := range resp.Argv[1:] {
-		object,err := d.GetObject(v)
-		if err != nil || object.Type != TypeRedisSet{
+	for _, v := range resp.Argv[1:] {
+		object, err := d.GetObject(v)
+		if err != nil || object.Type != TypeRedisSet {
 			continue
 		}
 		if ret == nil {
@@ -518,18 +521,18 @@ func SInter(d *DB,resp *Resp) []byte {
 			ret = ret.Inter(object.Value.(*RedisSet))
 		}
 	}
-	if ret == nil{
+	if ret == nil {
 		return NilBulkReplyEncode()
 	} else {
-		return  ArrayReplyEncode(ret.Members())
+		return ArrayReplyEncode(ret.Members())
 	}
 }
 
-func SInterStore(d *DB,resp *Resp) []byte {
+func SInterStore(d *DB, resp *Resp) []byte {
 	var ret *RedisSet
-	for _,v := range resp.Argv[2:] {
-		object,err := d.GetObject(v)
-		if err != nil || object.Type != TypeRedisSet{
+	for _, v := range resp.Argv[2:] {
+		object, err := d.GetObject(v)
+		if err != nil || object.Type != TypeRedisSet {
 			continue
 		}
 		if ret == nil {
@@ -538,7 +541,7 @@ func SInterStore(d *DB,resp *Resp) []byte {
 			ret = ret.Inter(object.Value.(*RedisSet))
 		}
 	}
-	if ret == nil{
+	if ret == nil {
 		ret = NewRedisSet()
 	}
 	object := NewObject()
@@ -546,12 +549,12 @@ func SInterStore(d *DB,resp *Resp) []byte {
 	object.Name = resp.GetKey()
 	object.Encoding = RedisEncodingHt
 	object.Value = ret
-	d.Objects.Store(resp.GetKey(),object)
+	d.Objects.Store(resp.GetKey(), object)
 	return IntReplyEncode(ret.Card())
 }
 
-func SIsMember(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func SIsMember(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return IntReplyEncode(0)
 	}
@@ -566,8 +569,8 @@ func SIsMember(d *DB,resp *Resp) []byte {
 	return IntReplyEncode(1)
 }
 
-func SMembers(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func SMembers(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return IntReplyEncode(0)
 	}
@@ -579,8 +582,8 @@ func SMembers(d *DB,resp *Resp) []byte {
 	return ArrayReplyEncode(set.Members())
 }
 
-func SMove(d *DB,resp *Resp) []byte {
-	src,err := d.GetObject(resp.GetKey())
+func SMove(d *DB, resp *Resp) []byte {
+	src, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return IntReplyEncode(0)
 	}
@@ -591,7 +594,7 @@ func SMove(d *DB,resp *Resp) []byte {
 	if !srcset.IsMember(resp.Argv[3]) {
 		return IntReplyEncode(0)
 	}
-	dst,err := d.GetObject(resp.Argv[2])
+	dst, err := d.GetObject(resp.Argv[2])
 	if err != nil {
 		return IntReplyEncode(0)
 	}
@@ -599,12 +602,12 @@ func SMove(d *DB,resp *Resp) []byte {
 		return ErrReplyEncode(ErrWrongKeyType.Error())
 	}
 	dstset := dst.Value.(*RedisSet)
-	srcset.Move(dstset,resp.Argv[3])
+	srcset.Move(dstset, resp.Argv[3])
 	return IntReplyEncode(1)
 }
 
-func SPop(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func SPop(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return NilBulkReplyEncode()
 	}
@@ -616,8 +619,8 @@ func SPop(d *DB,resp *Resp) []byte {
 	return BulkReplyEncode(set.Pop())
 }
 
-func SRem(d *DB,resp *Resp) []byte {
-	object,err := d.GetObject(resp.GetKey())
+func SRem(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
 	if err != nil {
 		return IntReplyEncode(0)
 	}
@@ -629,11 +632,11 @@ func SRem(d *DB,resp *Resp) []byte {
 	return IntReplyEncode(set.Rem(resp.Argv[2:]))
 }
 
-func SUnion(d *DB,resp *Resp) []byte {
+func SUnion(d *DB, resp *Resp) []byte {
 	var ret *RedisSet
-	for _,v := range resp.Argv[1:] {
-		object,err := d.GetObject(v)
-		if err != nil || object.Type != TypeRedisSet{
+	for _, v := range resp.Argv[1:] {
+		object, err := d.GetObject(v)
+		if err != nil || object.Type != TypeRedisSet {
 			continue
 		}
 		if ret == nil {
@@ -642,18 +645,18 @@ func SUnion(d *DB,resp *Resp) []byte {
 			ret = ret.Union(object.Value.(*RedisSet))
 		}
 	}
-	if ret == nil{
+	if ret == nil {
 		return NilBulkReplyEncode()
 	} else {
-		return  ArrayReplyEncode(ret.Members())
+		return ArrayReplyEncode(ret.Members())
 	}
 }
 
-func SUnionStore(d *DB,resp *Resp) []byte {
+func SUnionStore(d *DB, resp *Resp) []byte {
 	var ret *RedisSet
-	for _,v := range resp.Argv[2:] {
-		object,err := d.GetObject(v)
-		if err != nil || object.Type != TypeRedisSet{
+	for _, v := range resp.Argv[2:] {
+		object, err := d.GetObject(v)
+		if err != nil || object.Type != TypeRedisSet {
 			continue
 		}
 		if ret == nil {
@@ -662,7 +665,7 @@ func SUnionStore(d *DB,resp *Resp) []byte {
 			ret = ret.Union(object.Value.(*RedisSet))
 		}
 	}
-	if ret == nil{
+	if ret == nil {
 		ret = NewRedisSet()
 	}
 	object := NewObject()
@@ -670,7 +673,286 @@ func SUnionStore(d *DB,resp *Resp) []byte {
 	object.Name = resp.GetKey()
 	object.Encoding = RedisEncodingHt
 	object.Value = ret
-	d.Objects.Store(resp.GetKey(),object)
+	d.Objects.Store(resp.GetKey(), object)
 	return IntReplyEncode(ret.Card())
 }
 
+func LPush(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
+	var l *RedisList
+	if err != nil {
+		l = NewRedisList()
+		object := NewObject()
+		object.Type = TypeRedisList
+		object.Name = resp.GetKey()
+		object.Encoding = RedisEncodingLinkedList
+		object.Value = l
+		d.Objects.Store(resp.GetKey(), object)
+	} else {
+		if object.Type != TypeRedisList {
+			return ErrReplyEncode(ErrWrongKeyType.Error())
+		}
+		l = object.Value.(*RedisList)
+	}
+
+	return IntReplyEncode(l.Push(resp.Argv[2:]))
+}
+func LPushx(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
+	var l *RedisList
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+	if object.Type != TypeRedisList {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	l = object.Value.(*RedisList)
+	if l.Len() == 0 {
+		return IntReplyEncode(0)
+	}
+
+	return IntReplyEncode(l.Push(resp.Argv[2:]))
+}
+func RPush(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
+	var l *RedisList
+	if err != nil {
+		l = NewRedisList()
+		object := NewObject()
+		object.Type = TypeRedisList
+		object.Name = resp.GetKey()
+		object.Encoding = RedisEncodingLinkedList
+		object.Value = l
+		d.Objects.Store(resp.GetKey(), object)
+	} else {
+		if object.Type != TypeRedisList {
+			return ErrReplyEncode(ErrWrongKeyType.Error())
+		}
+		l = object.Value.(*RedisList)
+	}
+
+	return IntReplyEncode(l.RPush(resp.Argv[2:]))
+}
+
+func RPushHx(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
+	var l *RedisList
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+	if object.Type != TypeRedisList {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	l = object.Value.(*RedisList)
+	if l.Len() == 0 {
+		return IntReplyEncode(0)
+	}
+
+	return IntReplyEncode(l.RPush(resp.Argv[2:]))
+}
+
+func LPop(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	if object.Type != TypeRedisList {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	l := object.Value.(*RedisList)
+	if l.Len() == 0 {
+		return NilBulkReplyEncode()
+	}
+	return BulkReplyEncode(l.LPop())
+}
+
+func RPop(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	if object.Type != TypeRedisList {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	l := object.Value.(*RedisList)
+	if l.Len() == 0 {
+		return NilBulkReplyEncode()
+	}
+	return BulkReplyEncode(l.RPop())
+}
+
+func RPopLPush(d *DB, resp *Resp) []byte {
+	src, err := d.GetObject(resp.Argv[1])
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	if src.Type != TypeRedisList {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	srclist := src.Value.(*RedisList)
+	if srclist.Len() == 0 {
+		return NilBulkReplyEncode()
+	}
+	dst, err := d.GetObject(resp.Argv[2])
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	if dst.Type != TypeRedisList {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	dstlist := src.Value.(*RedisList)
+
+	value := srclist.RPop()
+	dstlist.Push([]string{value})
+
+	return StatusReplyEncode(value)
+}
+
+func LInsert(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+	if object.Type != TypeRedisList {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	l := object.Value.(*RedisList)
+	if l.Len() == 0 {
+		return IntReplyEncode(0)
+	}
+	return IntReplyEncode(l.Insert(resp.Argv[2], resp.Argv[3], resp.Argv[4]))
+}
+func LLen(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+	if object.Type != TypeRedisList {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	l := object.Value.(*RedisList)
+	return IntReplyEncode(l.Len())
+}
+func LRem(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+	if object.Type != TypeRedisList {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	l := object.Value.(*RedisList)
+	if l.Len() == 0 {
+		return IntReplyEncode(0)
+	}
+	count, err := strconv.Atoi(resp.Argv[2])
+	if err != nil {
+		return ErrReplyEncode(ErrCommand.Error())
+	}
+	return IntReplyEncode(l.Rem(count, resp.Argv[3]))
+}
+func LSet(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return IntReplyEncode(0)
+	}
+	if object.Type != TypeRedisList {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	l := object.Value.(*RedisList)
+	index, err := strconv.Atoi(resp.Argv[2])
+	if err != nil {
+		return ErrReplyEncode(ErrCommand.Error())
+	}
+	err = l.Set(index, resp.Argv[3])
+	if err == nil {
+		return StatusOkReplyEncode()
+	} else {
+		return ErrReplyEncode(err.Error())
+	}
+}
+func LIndex(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	if object.Type != TypeRedisList {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	index, err := strconv.Atoi(resp.Argv[2])
+	if err != nil {
+		return ErrReplyEncode(ErrCommand.Error())
+	}
+	l := object.Value.(*RedisList)
+	if l.Len() == 0 {
+		return NilBulkReplyEncode()
+	}
+	v, err := l.Index(index)
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	return BulkReplyEncode(v)
+}
+func LRange(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return NilBulkReplyEncode()
+	}
+	if object.Type != TypeRedisList {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	start, err := strconv.Atoi(resp.Argv[2])
+	if err != nil {
+		return ErrReplyEncode(ErrCommand.Error())
+	}
+	end, err := strconv.Atoi(resp.Argv[3])
+	if err != nil {
+		return ErrReplyEncode(ErrCommand.Error())
+	}
+	l := object.Value.(*RedisList)
+	if l.Len() == 0 {
+		return NilBulkReplyEncode()
+	}
+	ret := l.Range(start, end)
+	if len(ret) == 0 {
+		return NilBulkReplyEncode()
+	}
+
+	return ArrayReplyEncode(ret)
+}
+func LTrim(d *DB, resp *Resp) []byte {
+	object, err := d.GetObject(resp.GetKey())
+	if err != nil {
+		return StatusOkReplyEncode()
+	}
+	if object.Type != TypeRedisList {
+		return ErrReplyEncode(ErrWrongKeyType.Error())
+	}
+	start, err := strconv.Atoi(resp.Argv[2])
+	if err != nil {
+		return ErrReplyEncode(ErrCommand.Error())
+	}
+	end, err := strconv.Atoi(resp.Argv[3])
+	if err != nil {
+		return ErrReplyEncode(ErrCommand.Error())
+	}
+	l := object.Value.(*RedisList)
+	if l.Len() == 0 {
+		return StatusOkReplyEncode()
+	}
+	err = l.Trim(start, end)
+	if err != nil {
+		return ErrReplyEncode(err.Error())
+	}
+
+	return StatusOkReplyEncode()
+}
+
+func FlushDB(d *DB, resp *Resp) []byte {
+	d.Objects = &sync.Map{}
+	return StatusOkReplyEncode()
+}
+func FlushAll(d *DB, resp *Resp) []byte {
+	d.Server.FlushAll()
+	return StatusOkReplyEncode()
+}

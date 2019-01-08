@@ -197,6 +197,12 @@ const (
 	SELECT = "SELECT"
 )
 
+// Server
+const (
+	FLUSHALL = "FLUSHALL"
+	FLUSHDB = "FLUSHDB"
+)
+
 const (
 	// TypeRedisString string
 	TypeRedisString = iota

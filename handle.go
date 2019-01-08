@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 )
+
 // HM .
 var HM *HandleManger
 // Handle .
@@ -16,6 +17,25 @@ type Handle struct {
 // HandleManger .
 type HandleManger struct {
 	Handles map[string]*Handle
+}
+
+// NewHandleManger .
+func NewHandleManger() *HandleManger {
+	return &HandleManger{
+		Handles: make(map[string]*Handle),
+	}
+}
+// Distribute .
+func (m *HandleManger) Distribute(db *DB, resp *Resp) []byte {
+	cmd := strings.ToUpper(resp.Argv[0])
+	handle, ok := m.Handles[cmd]
+	if !ok {
+		return ErrReplyEncode(ErrDontSupportThisCommand.Error())
+	}
+	if resp.Argc < handle.MinArgNumbers || (handle.MaxArgNumbers > 0 && resp.Argc > handle.MaxArgNumbers) {
+		return ErrReplyEncode(fmt.Sprintf(ErrCommandArgsWrongNumber.Error(), cmd))
+	}
+	return handle.Func(db, resp)
 }
 
 func init() {
@@ -222,22 +242,98 @@ func init() {
 		MinArgNumbers: 3,
 		Func:          SUnionStore,
 	}
-}
-// NewHandleManger .
-func NewHandleManger() *HandleManger {
-	return &HandleManger{
-		Handles: make(map[string]*Handle),
+	HM.Handles[LPUSH] = &Handle{
+		Command:       LPUSH,
+		MinArgNumbers: 3,
+		Func:          LPush,
 	}
-}
-// Distribute .
-func (m *HandleManger) Distribute(db *DB, resp *Resp) []byte {
-	cmd := strings.ToUpper(resp.Argv[0])
-	handle, ok := m.Handles[cmd]
-	if !ok {
-		return ErrReplyEncode(ErrDontSupportThisCommand.Error())
+	HM.Handles[LPUSHX] = &Handle{
+		Command:       LPUSHX,
+		MinArgNumbers: 3,
+		MaxArgNumbers: 3,
+		Func:          LPushx,
 	}
-	if resp.Argc < handle.MinArgNumbers || (handle.MaxArgNumbers > 0 && resp.Argc > handle.MaxArgNumbers) {
-		return ErrReplyEncode(fmt.Sprintf(ErrCommandArgsWrongNumber.Error(), cmd))
+	HM.Handles[RPUSH] = &Handle{
+		Command:       RPUSH,
+		MinArgNumbers: 3,
+		Func:          RPush,
 	}
-	return handle.Func(db, resp)
+	HM.Handles[RPUSHX] = &Handle{
+		Command:       RPUSHX,
+		MinArgNumbers: 3,
+		MaxArgNumbers: 3,
+		Func:          RPushHx,
+	}
+	HM.Handles[LLEN] = &Handle{
+		Command:       LLEN,
+		MinArgNumbers: 2,
+		MaxArgNumbers: 2,
+		Func:          LLen,
+	}
+	HM.Handles[LINSERT] = &Handle{
+		Command:       LINSERT,
+		MinArgNumbers: 5,
+		MaxArgNumbers: 5,
+		Func:          LInsert,
+	}
+	HM.Handles[LINDEX] = &Handle{
+		Command:       LINDEX,
+		MinArgNumbers: 3,
+		MaxArgNumbers: 3,
+		Func:          LIndex,
+	}
+	HM.Handles[LPOP] = &Handle{
+		Command:       LPOP,
+		MinArgNumbers: 2,
+		MaxArgNumbers: 2,
+		Func:          LPop,
+	}
+	HM.Handles[RPOP] = &Handle{
+		Command:       RPOP,
+		MinArgNumbers: 2,
+		MaxArgNumbers: 2,
+		Func:          RPop,
+	}
+	HM.Handles[LSET] = &Handle{
+		Command:       LSET,
+		MinArgNumbers: 4,
+		MaxArgNumbers: 4,
+		Func:          LSet,
+	}
+	HM.Handles[LREM] = &Handle{
+		Command:       LREM,
+		MinArgNumbers: 4,
+		MaxArgNumbers: 4,
+		Func:          LRem,
+	}
+	HM.Handles[LRANGE] = &Handle{
+		Command:       LRANGE,
+		MinArgNumbers: 4,
+		MaxArgNumbers: 4,
+		Func:          LRange,
+	}
+	HM.Handles[LTRIM] = &Handle{
+		Command:       LTRIM,
+		MinArgNumbers: 4,
+		MaxArgNumbers: 4,
+		Func:          LTrim,
+	}
+	HM.Handles[RPOPLPUSH] = &Handle{
+		Command:       RPOPLPUSH,
+		MinArgNumbers: 3,
+		MaxArgNumbers: 3,
+		Func:          RPopLPush,
+	}
+	HM.Handles[FLUSHALL] = &Handle{
+		Command:       FLUSHALL,
+		MinArgNumbers: 1,
+		MaxArgNumbers: 1,
+		Func:          FlushAll,
+	}
+	HM.Handles[FLUSHDB] = &Handle{
+		Command:       FLUSHDB,
+		MinArgNumbers: 1,
+		MaxArgNumbers: 1,
+		Func:          FlushDB,
+	}
 }

@@ -45,7 +45,7 @@ func (s *Session) OnConnect() {
 func (s *Session) OnHandle(buf *[]byte) {
 	resps := s.Parser.Decode(buf)
 	for _,v := range resps{
-		if v.Argc < 1  {
+		if v.Argc == 0  {
 			continue
 		}
 		ret := HM.Distribute(s.DBObject,v)

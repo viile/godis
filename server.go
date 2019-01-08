@@ -10,10 +10,10 @@ import (
 // Server struct
 type Server struct {
 	// network
-	sessions     *sync.Map
-	status       int
-	listener     net.Listener
-	stopCh       chan error
+	sessions *sync.Map
+	status   int
+	listener net.Listener
+	stopCh   chan error
 	// object manager
 	Dbs *sync.Map
 }
@@ -31,11 +31,11 @@ func NewServer(addr string) (*Server, error) {
 		stopCh:   make(chan error),
 		status:   STInited,
 		listener: l,
-		Dbs: &sync.Map{},
+		Dbs:      &sync.Map{},
 	}
 
 	for i := 0; i < MaxDBNum; i++ {
-		s.Dbs.Store(i,NewDB(i))
+		s.Dbs.Store(i, NewDB(i, s))
 	}
 
 	return s, nil
@@ -77,7 +77,7 @@ func (s *Server) acceptHandler(ctx context.Context) {
 func (s *Server) connectHandler(ctx context.Context, c net.Conn) {
 	conn := NewConn(c)
 	session := NewSession(conn)
-	db,err := s.Select(session.settings["db"].(int))
+	db, err := s.Select(session.settings["db"].(int))
 	if err != nil {
 		conn.Close()
 		return
@@ -129,12 +129,19 @@ func (s *Server) GetConnsCount() int {
 	})
 	return count
 }
+// FlushAll .
+func (s *Server) FlushAll() {
+	s.Dbs = &sync.Map{}
 
-func (s *Server) Select(db int) (*DB,error){
-	r,ok := s.Dbs.Load(db)
+	for i := 0; i < MaxDBNum; i++ {
+		s.Dbs.Store(i, NewDB(i, s))
+	}
+}
+// Select .
+func (s *Server) Select(db int) (*DB, error) {
+	r, ok := s.Dbs.Load(db)
 	if !ok {
 		return nil, ErrDBNotFound
 	}
-	return r.(*DB),nil
+	return r.(*DB), nil
 }
-

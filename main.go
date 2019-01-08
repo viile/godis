@@ -1,10 +1,19 @@
 package main
 
-func main() {
-	host := "127.0.0.1:18787"
+import (
+	"flag"
+	"log"
+)
 
-	s, err := NewServer(host)
+var Host string
+
+func main() {
+	flag.StringVar(&Host, "h", "0.0.0.0:18787", "server host")
+	flag.Parse()
+
+	s, err := NewServer(Host)
 	if err != nil {
+		log.Println(err)
 		return
 	}
 
