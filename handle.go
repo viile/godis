@@ -336,4 +336,10 @@ func init() {
 		MaxArgNumbers: 1,
 		Func:          FlushDB,
 	}
+	HM.Handles[DBSIZE] = &Handle{
+		Command:       DBSIZE,
+		MinArgNumbers: 1,
+		MaxArgNumbers: 1,
+		Func:          DBSize,
+	}
 }

@@ -201,6 +201,7 @@ const (
 const (
 	FLUSHALL = "FLUSHALL"
 	FLUSHDB = "FLUSHDB"
+	DBSIZE = "DBSIZE"
 )
 
 const (

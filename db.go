@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -12,6 +13,7 @@ import (
 type DB struct {
 	ID      int
 	Objects *sync.Map
+	Length int32
 	Server  *Server
 }
 
@@ -24,6 +26,25 @@ func NewDB(id int, server *Server) *DB {
 	}
 }
 
+func (d *DB) AddObject(key string,obj *Object) (error) {
+	d.Objects.Store(key,obj)
+	//d.Length++
+	atomic.AddInt32(&d.Length,1)
+	return nil
+}
+func (d *DB) DelObject(key string) (error) {
+	d.Objects.Delete(key)
+	atomic.AddInt32(&d.Length,-1)
+	//d.Length--
+	return nil
+}
+
+func (d *DB) Flush() (error) {
+	d.Objects = &sync.Map{}
+	d.Length = 0
+	return nil
+}
+
 func (d *DB) GetObject(key string) (*Object, error) {
 	v, ok := d.Objects.Load(key)
 	if !ok {
@@ -31,7 +52,7 @@ func (d *DB) GetObject(key string) (*Object, error) {
 	}
 	object := v.(*Object)
 	if !object.CheckTTL() {
-		d.Objects.Delete(key)
+		d.DelObject(key)
 		return nil, ErrKeyNotFound
 	}
 	return object, nil
@@ -46,11 +67,11 @@ func Exists(d *DB, resp *Resp) []byte {
 func Del(d *DB, resp *Resp) []byte {
 	ret := 0
 	for _, v := range resp.Argv[1:] {
-		_, ok := d.Objects.Load(v)
-		if !ok {
+		_, err := d.GetObject(v)
+		if err != nil {
 			continue
 		}
-		d.Objects.Delete(v)
+		d.DelObject(v)
 		ret++
 	}
 	return IntReplyEncode(ret)
@@ -98,8 +119,8 @@ func Set(d *DB, resp *Resp) []byte {
 		}
 	}
 
-	_, ok := d.Objects.Load(key)
-	if (ok && NXFlag) || (!ok && XXFlag) {
+	_, err := d.GetObject(key)
+	if (err == nil && NXFlag) || (err != nil && XXFlag) {
 		return NilBulkReplyEncode()
 	}
 
@@ -110,7 +131,7 @@ func Set(d *DB, resp *Resp) []byte {
 	o.Name = key
 	o.ExpireAt = EXValue
 
-	d.Objects.Store(key, o)
+	d.AddObject(key, o)
 
 	return StatusOkReplyEncode()
 }
@@ -267,7 +288,7 @@ func HSet(d *DB, resp *Resp) []byte {
 		object.Name = resp.GetKey()
 		object.Encoding = RedisEncodingHt
 		object.Value = hash
-		d.Objects.Store(resp.GetKey(), object)
+		d.AddObject(resp.GetKey(), object)
 	} else {
 		if object.Type != TypeRedisHash {
 			return ErrReplyEncode(ErrWrongKeyType.Error())
@@ -288,7 +309,7 @@ func HSetNX(d *DB, resp *Resp) []byte {
 		object.Name = resp.GetKey()
 		object.Encoding = RedisEncodingHt
 		object.Value = hash
-		d.Objects.Store(resp.GetKey(), object)
+		d.AddObject(resp.GetKey(), object)
 	} else {
 		if object.Type != TypeRedisHash {
 			return ErrReplyEncode(ErrWrongKeyType.Error())
@@ -440,7 +461,7 @@ func SAdd(d *DB, resp *Resp) []byte {
 		object.Name = resp.GetKey()
 		object.Encoding = RedisEncodingHt
 		object.Value = set
-		d.Objects.Store(resp.GetKey(), object)
+		d.AddObject(resp.GetKey(), object)
 	} else {
 		if object.Type != TypeRedisSet {
 			return ErrReplyEncode(ErrWrongKeyType.Error())
@@ -504,7 +525,7 @@ func SDiffStore(d *DB, resp *Resp) []byte {
 	object.Name = resp.GetKey()
 	object.Encoding = RedisEncodingHt
 	object.Value = ret
-	d.Objects.Store(resp.GetKey(), object)
+	d.AddObject(resp.GetKey(), object)
 	return IntReplyEncode(ret.Card())
 }
 
@@ -549,7 +570,7 @@ func SInterStore(d *DB, resp *Resp) []byte {
 	object.Name = resp.GetKey()
 	object.Encoding = RedisEncodingHt
 	object.Value = ret
-	d.Objects.Store(resp.GetKey(), object)
+	d.AddObject(resp.GetKey(), object)
 	return IntReplyEncode(ret.Card())
 }
 
@@ -673,7 +694,7 @@ func SUnionStore(d *DB, resp *Resp) []byte {
 	object.Name = resp.GetKey()
 	object.Encoding = RedisEncodingHt
 	object.Value = ret
-	d.Objects.Store(resp.GetKey(), object)
+	d.AddObject(resp.GetKey(), object)
 	return IntReplyEncode(ret.Card())
 }
 
@@ -687,7 +708,7 @@ func LPush(d *DB, resp *Resp) []byte {
 		object.Name = resp.GetKey()
 		object.Encoding = RedisEncodingLinkedList
 		object.Value = l
-		d.Objects.Store(resp.GetKey(), object)
+		d.AddObject(resp.GetKey(), object)
 	} else {
 		if object.Type != TypeRedisList {
 			return ErrReplyEncode(ErrWrongKeyType.Error())
@@ -723,7 +744,7 @@ func RPush(d *DB, resp *Resp) []byte {
 		object.Name = resp.GetKey()
 		object.Encoding = RedisEncodingLinkedList
 		object.Value = l
-		d.Objects.Store(resp.GetKey(), object)
+		d.AddObject(resp.GetKey(), object)
 	} else {
 		if object.Type != TypeRedisList {
 			return ErrReplyEncode(ErrWrongKeyType.Error())
@@ -950,9 +971,13 @@ func LTrim(d *DB, resp *Resp) []byte {
 
 func FlushDB(d *DB, resp *Resp) []byte {
 	d.Objects = &sync.Map{}
+	d.Length = 1
 	return StatusOkReplyEncode()
 }
 func FlushAll(d *DB, resp *Resp) []byte {
 	d.Server.FlushAll()
 	return StatusOkReplyEncode()
+}
+func DBSize(d *DB, resp *Resp) []byte {
+	return IntReplyEncode(int(d.Length))
 }

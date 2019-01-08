@@ -132,9 +132,12 @@ func (s *Server) GetConnsCount() int {
 // FlushAll .
 func (s *Server) FlushAll() {
 	s.Dbs = &sync.Map{}
-
 	for i := 0; i < MaxDBNum; i++ {
-		s.Dbs.Store(i, NewDB(i, s))
+		s.Dbs.Range(func(key, value interface{}) bool {
+			db := value.(*DB)
+			db.Flush()
+			return true
+		})
 	}
 }
 // Select .

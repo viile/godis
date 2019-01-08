@@ -34,7 +34,7 @@ func (s *Session) GetSessionID() string {
 
 // OnDisconnect .
 func (s *Session) OnDisconnect(err error) {
-	log.Println(s.conn.GetName() + " lost.\n")
+	log.Println(s.conn.GetName() + " lost")
 }
 // OnConnect .
 func (s *Session) OnConnect() {
